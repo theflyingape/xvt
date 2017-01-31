@@ -1,0 +1,35 @@
+{
+  "name": "xvt",
+  "version": "1.0.0",
+  "description": "an event-driven terminal session handler",
+  "main": "./xvt.js",
+  "types": "./xvt.d.ts",
+  "dependencies": {
+    "class-validator": "^0.6.8"
+  },
+  "devDependencies": {
+    "@types/node": "^7.0.4"
+  },
+  "scripts": {
+    "test": "node main"
+  },
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/theflyingape/xvt.git"
+  },
+  "bugs": {
+    "url": "https://github.com/theflyingape/xvt/issues"
+  },
+  "homepage": "https://robert.hurst-ri.us",
+  "keywords": [
+    "ansi",
+    "async",
+    "cli",
+    "emulation",
+    "terminal",
+    "typescript",
+    "vt100"
+  ],
+  "author": "Robert Hurst",
+  "license": "MIT"
+}
