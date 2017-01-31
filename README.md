@@ -3,7 +3,7 @@ an event-driven terminal session handler from the app's shell
 
 
 ## Example
-`
+```
 import xvt = require('xvt')
 
 xvt.app.form = {
@@ -15,14 +15,16 @@ xvt.app.form = {
 }
 
 xvt.app.focus = 'username'
-`
+```
 
 **class-validator** is loaded to assist with user input validation functions:
-`function email() {
+```
+function email() {
 	if (xvt.__validator.isEmail__(tty.entry)) {
 		xvt.out('\nThat email address looks OK by me.')
 		xvt.app.focus = 1
 	}
 	else
 		xvt.app.refocus()
-}`
+}
+```
