@@ -20,9 +20,9 @@ function password() {
 
 xvt.modem = true
 xvt.app.form = {
-	'pause': { callback:start, pause:true },
-	'username': { prompt:'Username: ', callback:login, min:3, max:10 },
-	'password': { callback:password, echo:false, min:4, timeout:150 }
+	'pause': { cb:start, pause:true },
+	'username': { cb:login, prompt:'Username: ', min:3, max:10 },
+	'password': { cb:password, echo:false, min:4, timeout:150 }
 }
 xvt.app.focus = 'pause'
 

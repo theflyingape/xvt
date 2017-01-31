@@ -79,7 +79,7 @@ var xvt;
                 }
                 if (xvt.validator.isBoolean(p.pause))
                     rubout(p.prompt.length);
-                p.callback();
+                p.cb();
             });
         }
     }

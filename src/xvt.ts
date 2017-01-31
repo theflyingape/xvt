@@ -14,7 +14,7 @@ export interface Field {
 	row?: number
 	col?: number
 	prompt?: string
-	callback: Function
+	cb: Function
 	enter?: string
 	echo?: boolean
 	eol?: boolean
@@ -115,7 +115,7 @@ export class session {
         if (validator.isBoolean(p.pause))
             rubout(p.prompt.length)
 
-        p.callback()
+        p.cb()
     }
 }
 

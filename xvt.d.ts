@@ -11,7 +11,7 @@ declare module xvt {
         row?: number;
         col?: number;
         prompt?: string;
-        callback: Function;
+        cb: Function;
         enter?: string;
         echo?: boolean;
         eol?: boolean;
