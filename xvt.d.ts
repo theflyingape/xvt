@@ -56,6 +56,7 @@ declare module xvt {
     let entryMax: number;
     function read(): Promise<void>;
     function wait(ms: number): Promise<{}>;
+    function waste(ms: number): void;
     let color: number;
     let bold: boolean;
     let dark: boolean;

@@ -37,28 +37,6 @@ var xvt;
                 return;
             }
             this._focus = name;
-            xvt.enter = xvt.validator.isDefined(p.enter) ? p.enter : '';
-            let row = xvt.validator.isDefined(p.row) ? p.row : 0;
-            let col = xvt.validator.isDefined(p.col) ? p.col : 0;
-            if (row && col)
-                plot(row, col); //  formatted screen
-            else
-                out('\n'); //  roll-and-scroll
-            if (xvt.validator.isBoolean(p.pause)) {
-                xvt.echo = false;
-                xvt.eol = false;
-                if (!xvt.validator.isDefined(p.prompt))
-                    p.prompt = '-pause-';
-                out(xvt.reset, xvt.reverse, p.prompt, xvt.reset);
-            }
-            else {
-                xvt.echo = xvt.validator.isDefined(p.echo) ? p.echo : true;
-                xvt.eol = xvt.validator.isDefined(p.eol) ? p.eol : true;
-                if (xvt.validator.isDefined(p.prompt))
-                    out(p.prompt);
-            }
-            if (!xvt.eol && !xvt.enter.length)
-                xvt.enter = ' ';
             this._read();
         }
         refocus() {
@@ -67,6 +45,28 @@ var xvt;
         _read() {
             return __awaiter(this, void 0, void 0, function* () {
                 let p = this._fields[this.focus];
+                xvt.enter = xvt.validator.isDefined(p.enter) ? p.enter : '';
+                let row = xvt.validator.isDefined(p.row) ? p.row : 0;
+                let col = xvt.validator.isDefined(p.col) ? p.col : 0;
+                if (row && col)
+                    plot(row, col); //  formatted screen
+                else
+                    out('\n'); //  roll-and-scroll
+                if (xvt.validator.isBoolean(p.pause)) {
+                    xvt.echo = false;
+                    xvt.eol = false;
+                    if (!xvt.validator.isDefined(p.prompt))
+                        p.prompt = '-pause-';
+                    out(xvt.reset, xvt.reverse, p.prompt, xvt.reset);
+                }
+                else {
+                    xvt.echo = xvt.validator.isDefined(p.echo) ? p.echo : true;
+                    xvt.eol = xvt.validator.isDefined(p.eol) ? p.eol : true;
+                    if (xvt.validator.isDefined(p.prompt))
+                        out(p.prompt);
+                }
+                if (!xvt.eol && !xvt.enter.length)
+                    xvt.enter = ' ';
                 xvt.idleTimeout = xvt.validator.isDefined(p.timeout) ? p.timeout : xvt.defaultTimeout;
                 xvt.entryMin = xvt.validator.isDefined(p.min) ? p.min : 0;
                 xvt.entryMax = xvt.validator.isDefined(p.max) ? p.max : (xvt.eol ? 0 : 1);
@@ -87,7 +87,7 @@ var xvt;
     xvt.app = new session();
     xvt.modem = false;
     xvt.defaultTimeout = -1;
-    xvt.pollingMS = 100;
+    xvt.pollingMS = 10;
     xvt.sessionStart = new Date();
     xvt.entry = '';
     xvt.enter = '';
@@ -100,12 +100,13 @@ var xvt;
         return __awaiter(this, void 0, void 0, function* () {
             xvt.entry = '';
             let retry = xvt.idleTimeout;
-            for (; retry && !xvt.entry.length; retry--) {
+            while (retry-- && !xvt.entry.length) {
                 yield wait(xvt.pollingMS);
                 if (xvt.idleTimeout > 0 && xvt.idleTimeout / retry == 2) {
                     beep();
                 }
             }
+            input = '';
             if (!retry) {
                 out(' ** timeout **\n', xvt.reset);
                 process.exit();
@@ -117,6 +118,11 @@ var xvt;
         return new Promise(resolve => setTimeout(resolve, ms));
     }
     xvt.wait = wait;
+    function waste(ms) {
+        let start = new Date().getTime() + (ms);
+        while (new Date().getTime() <= start) { }
+    }
+    xvt.waste = waste;
     function attr(...out) {
         out.forEach(data => {
             if (typeof data == 'number') {
@@ -419,7 +425,6 @@ var xvt;
                     out(input);
             }
             xvt.entry = input;
-            input = '';
             return;
         }
         //  eat other control keys
@@ -488,7 +493,6 @@ var xvt;
                 k = '^' + String.fromCharCode(64 + k.charCodeAt(0));
             }
             xvt.entry = k;
-            input = '';
             return;
         }
         //  don't exceed maximum input allowed
@@ -502,7 +506,6 @@ var xvt;
         //  terminate entry if input size is met
         if (!xvt.eol && input.length >= xvt.entryMax) {
             xvt.entry = input;
-            input = '';
         }
     });
 })(xvt || (xvt = {}));

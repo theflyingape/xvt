@@ -67,6 +67,16 @@ export class session {
         }
         this._focus = name
 
+        this._read()
+    }
+
+    refocus() {
+        this.focus = this.focus
+    }
+
+    private async _read() {
+        let p = this._fields[this.focus]
+
         enter = validator.isDefined(p.enter) ? p.enter : ''
         let row = validator.isDefined(p.row) ? p.row : 0
         let col = validator.isDefined(p.col) ? p.col : 0
@@ -90,15 +100,6 @@ export class session {
 
         if (!eol && !enter.length) enter = ' '
 
-        this._read()
-    }
-
-    refocus() {
-        this.focus = this.focus
-    }
-
-    private async _read() {
-        let p = this._fields[this.focus]
         idleTimeout = validator.isDefined(p.timeout) ? p.timeout : defaultTimeout
         entryMin = validator.isDefined(p.min) ? p.min : 0
         entryMax = validator.isDefined(p.max) ? p.max : (eol ? 0 : 1)
@@ -140,12 +141,14 @@ export async function read() {
     entry = ''
     let retry = idleTimeout
 
-    for (; retry && !entry.length; retry--) {
+    while (retry-- && !entry.length) {
         await wait(pollingMS)
         if (idleTimeout > 0 && idleTimeout / retry == 2) {
             beep()
         }
     }
+
+    input = ''
 
     if (!retry) {
         out(' ** timeout **\n', reset)
@@ -156,6 +159,11 @@ export async function read() {
 
 export function wait(ms: number) {
     return new Promise(resolve => setTimeout(resolve, ms))
+}
+
+export function waste(ms: number) {
+    let start = new Date().getTime() + (ms)
+    while (new Date().getTime() <= start) {}
 }
 
 export let color: number
@@ -479,7 +487,6 @@ process.stdin.on('data', function(key: Buffer) {
             if(echo) out(input)
         }
         entry = input
-        input = ''
         return
     }
 
@@ -548,7 +555,6 @@ process.stdin.on('data', function(key: Buffer) {
             k = '^' + String.fromCharCode(64 + k.charCodeAt(0))
         }
         entry = k
-        input = ''
         return
     }
 
@@ -564,7 +570,6 @@ process.stdin.on('data', function(key: Buffer) {
     //  terminate entry if input size is met
     if (!eol && input.length >= entryMax) {
         entry = input
-        input = ''
     }
 })
 
