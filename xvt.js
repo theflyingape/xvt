@@ -45,6 +45,7 @@ var xvt;
         _read() {
             return __awaiter(this, void 0, void 0, function* () {
                 let p = this._fields[this.focus];
+                xvt.cancel = xvt.validator.isDefined(p.cancel) ? p.cancel : '';
                 xvt.enter = xvt.validator.isDefined(p.enter) ? p.enter : '';
                 let row = xvt.validator.isDefined(p.row) ? p.row : 0;
                 let col = xvt.validator.isDefined(p.col) ? p.col : 0;
@@ -87,7 +88,7 @@ var xvt;
     xvt.app = new session();
     xvt.modem = false;
     xvt.defaultTimeout = -1;
-    xvt.pollingMS = 10;
+    xvt.pollingMS = 100;
     xvt.sessionStart = new Date();
     xvt.entry = '';
     xvt.enter = '';
@@ -99,17 +100,21 @@ var xvt;
     function read() {
         return __awaiter(this, void 0, void 0, function* () {
             xvt.entry = '';
-            let retry = xvt.idleTimeout;
-            while (retry-- && !xvt.entry.length) {
+            let retry = xvt.idleTimeout * (1000 / xvt.pollingMS);
+            let warn = retry / 2;
+            while (--retry && !xvt.entry.length) {
                 yield wait(xvt.pollingMS);
-                if (xvt.idleTimeout > 0 && xvt.idleTimeout / retry == 2) {
+                if (xvt.idleTimeout > 0 && retry == warn) {
                     beep();
                 }
             }
             input = '';
             if (!retry) {
                 out(' ** timeout **\n', xvt.reset);
-                process.exit();
+                if (xvt.cancel.length)
+                    xvt.entry = xvt.cancel;
+                else
+                    hangup();
             }
         });
     }
@@ -254,21 +259,19 @@ var xvt;
     }
     xvt.beep = beep;
     function hangup() {
-        return __awaiter(this, void 0, void 0, function* () {
-            if (xvt.modem) {
-                out(xvt.reset, '+++');
-                yield wait(600);
-                out('\nOK\n');
-                yield wait(300);
-                out('ATH\n');
-                yield wait(600);
-                beep();
-                yield wait(200);
-                out('NO CARRIER\n');
-                yield wait(300);
-            }
-            process.exit();
-        });
+        if (xvt.modem) {
+            out(xvt.reset, '+++');
+            waste(600);
+            out('\nOK\n');
+            waste(300);
+            out('ATH\n');
+            waste(600);
+            beep();
+            waste(200);
+            out('NO CARRIER\n');
+            waste(300);
+        }
+        process.exit();
     }
     xvt.hangup = hangup;
     function out(...out) {
@@ -306,28 +309,28 @@ var xvt;
     xvt.Cyan = 46;
     xvt.White = 47;
     //  ░ ▒ ▓ █ 
-    const LGradient = {
+    xvt.LGradient = {
         VT: '\x1B(0\x1B[2ma\x1B[ma\x1B[7m \x1B[1m \x1B[27m\x1B(B',
         PC: '\xB0\xB1\xB2\xDB',
         XT: '\u2591\u2592\u2593\u2588',
         dumb: ' :: '
     };
     //  █ ▓ ▒ ░ 
-    const RGradient = {
+    xvt.RGradient = {
         VT: '\x1B(0\x1B[1;7m \x1B[21m \x1B[ma\x1B[2ma\x1B[m\x1B(B',
         PC: '\xDB\xB2\xB1\xB0',
         XT: '\u2588\u2593\u2592\u2591',
         dumb: ' :: '
     };
     //  ─ └ ┴ ┘ ├ ┼ ┤ ┌ ┬ ┐ │
-    const Draw = {
+    xvt.Draw = {
         VT: ['q', 'm', 'v', 'j', 't', 'n', 'u', 'l', 'w', 'k', 'x'],
         PC: ['\xC4', '\xC0', '\xC1', '\xD9', '\xC3', '\xC5', '\xB4', '\xDA', '\xC2', '\xBF', '\xB3'],
         XT: ['\u2500', '\u2514', '\u2534', '\u2518', '\u251C', '\u253C', '\u2524', '\u250C', '\u252C', '\u2510', '\u2502'],
         dumb: ['-', '+', '^', '+', '>', '+', '<', '+', 'v', '+', '|']
     };
     //  · 
-    const Empty = {
+    xvt.Empty = {
         VT: '\x1B(0\x7E\x1B(B',
         PC: '\xFA',
         XT: '\u00B7',

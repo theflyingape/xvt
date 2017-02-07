@@ -12,6 +12,7 @@ declare module xvt {
         col?: number;
         prompt?: string;
         cb: Function;
+        cancel?: string;
         enter?: string;
         echo?: boolean;
         eol?: boolean;
@@ -66,7 +67,7 @@ declare module xvt {
     let emulation: string;
     function attr(...out: any[]): string;
     function beep(): void;
-    function hangup(): Promise<void>;
+    function hangup(): void;
     function out(...out: any[]): void;
     const cll = -2;
     const clear = -1;
@@ -98,6 +99,30 @@ declare module xvt {
     const Magenta = 45;
     const Cyan = 46;
     const White = 47;
+    const LGradient: {
+        VT: string;
+        PC: string;
+        XT: string;
+        dumb: string;
+    };
+    const RGradient: {
+        VT: string;
+        PC: string;
+        XT: string;
+        dumb: string;
+    };
+    const Draw: {
+        VT: string[];
+        PC: string[];
+        XT: string[];
+        dumb: string[];
+    };
+    const Empty: {
+        VT: string;
+        PC: string;
+        XT: string;
+        dumb: string;
+    };
     function plot(row: number, col: number): void;
     function rubout(n?: number, c?: string): void;
 }

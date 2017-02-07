@@ -15,6 +15,7 @@ export interface Field {
 	col?: number
 	prompt?: string
 	cb: Function
+    cancel?: string
 	enter?: string
 	echo?: boolean
 	eol?: boolean
@@ -77,6 +78,7 @@ export class session {
     private async _read() {
         let p = this._fields[this.focus]
 
+        cancel = validator.isDefined(p.cancel) ? p.cancel : ''
         enter = validator.isDefined(p.enter) ? p.enter : ''
         let row = validator.isDefined(p.row) ? p.row : 0
         let col = validator.isDefined(p.col) ? p.col : 0
@@ -139,11 +141,12 @@ export let entryMax: number = 0
 
 export async function read() {
     entry = ''
-    let retry = idleTimeout
+    let retry = idleTimeout * (1000 / pollingMS)
+    let warn = retry / 2
 
-    while (retry-- && !entry.length) {
+    while (--retry && !entry.length) {
         await wait(pollingMS)
-        if (idleTimeout > 0 && idleTimeout / retry == 2) {
+        if (idleTimeout > 0 && retry == warn) {
             beep()
         }
     }
@@ -152,7 +155,10 @@ export async function read() {
 
     if (!retry) {
         out(' ** timeout **\n', reset)
-        process.exit()
+        if (cancel.length)
+            entry = cancel
+        else
+            hangup()
         //return new Promise(reject => 'timeout')
     }
 }
@@ -308,18 +314,18 @@ export function beep() {
         out('\x07')
 }
 
-export async function hangup() {
+export function hangup() {
     if (modem) {
         out(reset, '+++')
-        await wait(600)
+        waste(600)
         out('\nOK\n')
-        await wait(300)
+        waste(300)
         out('ATH\n')
-        await wait(600)
+        waste(600)
         beep()
-        await wait(200)
+        waste(200)
         out('NO CARRIER\n')
-        await wait(300)
+        waste(300)
     }
     process.exit()
 }
@@ -360,7 +366,7 @@ export const Cyan       = 46
 export const White      = 47
 
 //  ░ ▒ ▓ █ 
-const LGradient = {
+export const LGradient = {
     VT:'\x1B(0\x1B[2ma\x1B[ma\x1B[7m \x1B[1m \x1B[27m\x1B(B',
     PC:'\xB0\xB1\xB2\xDB',
     XT:'\u2591\u2592\u2593\u2588',
@@ -368,7 +374,7 @@ const LGradient = {
 }
 
 //  █ ▓ ▒ ░ 
-const RGradient = {
+export const RGradient = {
     VT:'\x1B(0\x1B[1;7m \x1B[21m \x1B[ma\x1B[2ma\x1B[m\x1B(B',
     PC:'\xDB\xB2\xB1\xB0',
     XT:'\u2588\u2593\u2592\u2591',
@@ -376,7 +382,7 @@ const RGradient = {
 }
 
 //  ─ └ ┴ ┘ ├ ┼ ┤ ┌ ┬ ┐ │
-const Draw = {
+export const Draw = {
     VT: [ 'q', 'm', 'v', 'j', 't', 'n', 'u', 'l', 'w', 'k', 'x' ],
     PC: [ '\xC4', '\xC0', '\xC1', '\xD9', '\xC3', '\xC5', '\xB4', '\xDA', '\xC2', '\xBF', '\xB3' ],
     XT: [ '\u2500', '\u2514', '\u2534', '\u2518', '\u251C', '\u253C', '\u2524', '\u250C', '\u252C', '\u2510', '\u2502' ],
@@ -384,7 +390,7 @@ const Draw = {
 }
 
 //  · 
-const Empty = {
+export const Empty = {
     VT: '\x1B(0\x7E\x1B(B',
     PC: '\xFA',
     XT: '\u00B7',
