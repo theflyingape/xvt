@@ -24,12 +24,14 @@ export interface Field {
 	match?: RegExp
 	pause?: boolean
     timeout?: number
+    inputStyle?: any[]
+    promptStyle?: any[]
 }
 
 export interface iField {
     [key: string]: Field
 }
-
+/*
 export interface Form {
 	prompts: iField[]
 }
@@ -37,8 +39,71 @@ export interface Form {
 export interface iForm {
 	[key: string]: Form
 }
-
+*/
 export const validator = new Validator()
+
+export const cll        = -2
+export const clear      = -1
+export const reset      =  0    // all attributes off, default color
+export const bright     =  1
+export const faint      =  2
+export const uline      =  4
+export const blink      =  5
+export const reverse    =  7
+export const off        = 20    //  turn any attribute on -> off, except color
+export const nobright   = 21
+export const nofaint    = 22
+export const nouline    = 24
+export const noblink    = 25
+export const normal     = 27
+export const black      = 30
+export const red        = 31
+export const green      = 32
+export const yellow     = 33
+export const blue       = 34
+export const magenta    = 35
+export const cyan       = 36
+export const white      = 37
+export const Black      = 40
+export const Red        = 41
+export const Green      = 42
+export const Yellow     = 43
+export const Blue       = 44
+export const Magenta    = 45
+export const Cyan       = 46
+export const White      = 47
+
+//  ░ ▒ ▓ █ 
+export const LGradient = {
+    VT:'\x1B(0\x1B[2ma\x1B[ma\x1B[7m \x1B[1m \x1B[27m\x1B(B',
+    PC:'\xB0\xB1\xB2\xDB',
+    XT:'\u2591\u2592\u2593\u2588',
+    dumb: ' :: '
+}
+
+//  █ ▓ ▒ ░ 
+export const RGradient = {
+    VT:'\x1B(0\x1B[1;7m \x1B[21m \x1B[ma\x1B[2ma\x1B[m\x1B(B',
+    PC:'\xDB\xB2\xB1\xB0',
+    XT:'\u2588\u2593\u2592\u2591',
+    dumb: ' :: '
+}
+
+//  ─ └ ┴ ┘ ├ ┼ ┤ ┌ ┬ ┐ │
+export const Draw = {
+    VT: [ 'q', 'm', 'v', 'j', 't', 'n', 'u', 'l', 'w', 'k', 'x' ],
+    PC: [ '\xC4', '\xC0', '\xC1', '\xD9', '\xC3', '\xC5', '\xB4', '\xDA', '\xC2', '\xBF', '\xB3' ],
+    XT: [ '\u2500', '\u2514', '\u2534', '\u2518', '\u251C', '\u253C', '\u2524', '\u250C', '\u252C', '\u2510', '\u2502' ],
+    dumb: [ '-', '+', '^', '+', '>', '+', '<', '+', 'v', '+', '|' ]
+}
+
+//  · 
+export const Empty = {
+    VT: '\x1B(0\x7E\x1B(B',
+    PC: '\xFA',
+    XT: '\u00B7',
+    dumb: '.'
+}
 
 export class session {
 
@@ -47,7 +112,7 @@ export class session {
             process.stdin.setRawMode(true)
     }
 
-    private _fields: iField        
+    private _fields: iField
     private _focus: string|number
 
     get form() {
@@ -71,8 +136,16 @@ export class session {
         this._read()
     }
 
+    nofocus(keep = false) {
+        echo = keep
+        entryMin = 0
+        entryMax = 0
+        eol = false
+        this._focus = null
+    }
+
     refocus() {
-        this.focus = this.focus
+        if (validator.isNotEmpty(this._focus)) this.focus = this.focus
     }
 
     private async _read() {
@@ -80,6 +153,8 @@ export class session {
 
         cancel = validator.isDefined(p.cancel) ? p.cancel : ''
         enter = validator.isDefined(p.enter) ? p.enter : ''
+
+        out(reset)
         let row = validator.isDefined(p.row) ? p.row : 0
         let col = validator.isDefined(p.col) ? p.col : 0
         if(row && col)
@@ -91,13 +166,22 @@ export class session {
             echo = false
             eol = false
             if (!validator.isDefined(p.prompt)) p.prompt = '-pause-'
-            out(reset, reverse, p.prompt, reset)
+            out(reverse, p.prompt, reset)
         }
         else {
             echo = validator.isDefined(p.echo) ? p.echo : true
             eol = validator.isDefined(p.eol) ? p.eol : true
+
+            if (!validator.isDefined(p.promptStyle)) p.promptStyle = defaultPromptStyle
+            for (let n = 0; n < p.promptStyle.length; n++)
+                out(p.promptStyle[n])
+
             if (validator.isDefined(p.prompt))
                 out(p.prompt)
+
+            if (!validator.isDefined(p.inputStyle)) p.inputStyle = defaultInputStyle
+            for (let n = 0; n < p.inputStyle.length; n++)
+                out(p.inputStyle[n])
         }
 
         if (!eol && !enter.length) enter = ' '
@@ -118,6 +202,7 @@ export class session {
         if (validator.isBoolean(p.pause))
             rubout(p.prompt.length)
 
+        out(reset)
         p.cb()
     }
 }
@@ -138,6 +223,8 @@ export let echo: boolean = true
 export let eol: boolean = true
 export let entryMin: number = 0
 export let entryMax: number = 0
+export let defaultInputStyle: any = [ bright, white ]
+export let defaultPromptStyle: any = [ cyan ]
 
 export async function read() {
     entry = ''
@@ -331,70 +418,7 @@ export function hangup() {
 }
 
 export function out(...out) {
-    process.stdout.write(attr(...out), emulation == 'XT' ? 'utf8' : 'ascii' )
-}
-
-export const cll        = -2
-export const clear      = -1
-export const reset      =  0    // all attributes off, default color
-export const bright     =  1
-export const faint      =  2
-export const uline      =  4
-export const blink      =  5
-export const reverse    =  7
-export const off        = 20    //  turn any attribute on -> off, except color
-export const nobright   = 21
-export const nofaint    = 22
-export const nouline    = 24
-export const noblink    = 25
-export const normal     = 27
-export const black      = 30
-export const red        = 31
-export const green      = 32
-export const yellow     = 33
-export const blue       = 34
-export const magenta    = 35
-export const cyan       = 36
-export const white      = 37
-export const Black      = 40
-export const Red        = 41
-export const Green      = 42
-export const Yellow     = 43
-export const Blue       = 44
-export const Magenta    = 45
-export const Cyan       = 46
-export const White      = 47
-
-//  ░ ▒ ▓ █ 
-export const LGradient = {
-    VT:'\x1B(0\x1B[2ma\x1B[ma\x1B[7m \x1B[1m \x1B[27m\x1B(B',
-    PC:'\xB0\xB1\xB2\xDB',
-    XT:'\u2591\u2592\u2593\u2588',
-    dumb: ' :: '
-}
-
-//  █ ▓ ▒ ░ 
-export const RGradient = {
-    VT:'\x1B(0\x1B[1;7m \x1B[21m \x1B[ma\x1B[2ma\x1B[m\x1B(B',
-    PC:'\xDB\xB2\xB1\xB0',
-    XT:'\u2588\u2593\u2592\u2591',
-    dumb: ' :: '
-}
-
-//  ─ └ ┴ ┘ ├ ┼ ┤ ┌ ┬ ┐ │
-export const Draw = {
-    VT: [ 'q', 'm', 'v', 'j', 't', 'n', 'u', 'l', 'w', 'k', 'x' ],
-    PC: [ '\xC4', '\xC0', '\xC1', '\xD9', '\xC3', '\xC5', '\xB4', '\xDA', '\xC2', '\xBF', '\xB3' ],
-    XT: [ '\u2500', '\u2514', '\u2534', '\u2518', '\u251C', '\u253C', '\u2524', '\u250C', '\u252C', '\u2510', '\u2502' ],
-    dumb: [ '-', '+', '^', '+', '>', '+', '<', '+', 'v', '+', '|' ]
-}
-
-//  · 
-export const Empty = {
-    VT: '\x1B(0\x7E\x1B(B',
-    PC: '\xFA',
-    XT: '\u00B7',
-    dumb: '.'
+    process.stdout.write(attr(...out), emulation == 'XT' ? 'utf8' : 'ascii')
 }
 
 let _SGR: string = ''   //  Select Graphic Rendition
@@ -460,6 +484,8 @@ process.stdin.on('data', function(key: Buffer) {
         out(' ** disconnect ** \n')
         hangup()
     }
+
+    if (validator.isEmpty(app.focus) && !echo) return
 
     //  rubout
     if (k == '\x08' || k == '\x7F') {

@@ -17,7 +17,74 @@ var __awaiter = (this && this.__awaiter) || function (thisArg, _arguments, P, ge
 const class_validator_1 = require("class-validator");
 var xvt;
 (function (xvt) {
+    /*
+    export interface Form {
+        prompts: iField[]
+    }
+    
+    export interface iForm {
+        [key: string]: Form
+    }
+    */
     xvt.validator = new class_validator_1.Validator();
+    xvt.cll = -2;
+    xvt.clear = -1;
+    xvt.reset = 0; // all attributes off, default color
+    xvt.bright = 1;
+    xvt.faint = 2;
+    xvt.uline = 4;
+    xvt.blink = 5;
+    xvt.reverse = 7;
+    xvt.off = 20; //  turn any attribute on -> off, except color
+    xvt.nobright = 21;
+    xvt.nofaint = 22;
+    xvt.nouline = 24;
+    xvt.noblink = 25;
+    xvt.normal = 27;
+    xvt.black = 30;
+    xvt.red = 31;
+    xvt.green = 32;
+    xvt.yellow = 33;
+    xvt.blue = 34;
+    xvt.magenta = 35;
+    xvt.cyan = 36;
+    xvt.white = 37;
+    xvt.Black = 40;
+    xvt.Red = 41;
+    xvt.Green = 42;
+    xvt.Yellow = 43;
+    xvt.Blue = 44;
+    xvt.Magenta = 45;
+    xvt.Cyan = 46;
+    xvt.White = 47;
+    //  ░ ▒ ▓ █ 
+    xvt.LGradient = {
+        VT: '\x1B(0\x1B[2ma\x1B[ma\x1B[7m \x1B[1m \x1B[27m\x1B(B',
+        PC: '\xB0\xB1\xB2\xDB',
+        XT: '\u2591\u2592\u2593\u2588',
+        dumb: ' :: '
+    };
+    //  █ ▓ ▒ ░ 
+    xvt.RGradient = {
+        VT: '\x1B(0\x1B[1;7m \x1B[21m \x1B[ma\x1B[2ma\x1B[m\x1B(B',
+        PC: '\xDB\xB2\xB1\xB0',
+        XT: '\u2588\u2593\u2592\u2591',
+        dumb: ' :: '
+    };
+    //  ─ └ ┴ ┘ ├ ┼ ┤ ┌ ┬ ┐ │
+    xvt.Draw = {
+        VT: ['q', 'm', 'v', 'j', 't', 'n', 'u', 'l', 'w', 'k', 'x'],
+        PC: ['\xC4', '\xC0', '\xC1', '\xD9', '\xC3', '\xC5', '\xB4', '\xDA', '\xC2', '\xBF', '\xB3'],
+        XT: ['\u2500', '\u2514', '\u2534', '\u2518', '\u251C', '\u253C', '\u2524', '\u250C', '\u252C', '\u2510', '\u2502'],
+        dumb: ['-', '+', '^', '+', '>', '+', '<', '+', 'v', '+', '|']
+    };
+    //  · 
+    xvt.Empty = {
+        VT: '\x1B(0\x7E\x1B(B',
+        PC: '\xFA',
+        XT: '\u00B7',
+        dumb: '.'
+    };
     class session {
         constructor() {
             if (process.stdin.isTTY)
@@ -39,14 +106,23 @@ var xvt;
             this._focus = name;
             this._read();
         }
+        nofocus(keep = false) {
+            xvt.echo = keep;
+            xvt.entryMin = 0;
+            xvt.entryMax = 0;
+            xvt.eol = false;
+            this._focus = null;
+        }
         refocus() {
-            this.focus = this.focus;
+            if (xvt.validator.isNotEmpty(this._focus))
+                this.focus = this.focus;
         }
         _read() {
             return __awaiter(this, void 0, void 0, function* () {
                 let p = this._fields[this.focus];
                 xvt.cancel = xvt.validator.isDefined(p.cancel) ? p.cancel : '';
                 xvt.enter = xvt.validator.isDefined(p.enter) ? p.enter : '';
+                out(xvt.reset);
                 let row = xvt.validator.isDefined(p.row) ? p.row : 0;
                 let col = xvt.validator.isDefined(p.col) ? p.col : 0;
                 if (row && col)
@@ -58,13 +134,21 @@ var xvt;
                     xvt.eol = false;
                     if (!xvt.validator.isDefined(p.prompt))
                         p.prompt = '-pause-';
-                    out(xvt.reset, xvt.reverse, p.prompt, xvt.reset);
+                    out(xvt.reverse, p.prompt, xvt.reset);
                 }
                 else {
                     xvt.echo = xvt.validator.isDefined(p.echo) ? p.echo : true;
                     xvt.eol = xvt.validator.isDefined(p.eol) ? p.eol : true;
+                    if (!xvt.validator.isDefined(p.promptStyle))
+                        p.promptStyle = xvt.defaultPromptStyle;
+                    for (let n = 0; n < p.promptStyle.length; n++)
+                        out(p.promptStyle[n]);
                     if (xvt.validator.isDefined(p.prompt))
                         out(p.prompt);
+                    if (!xvt.validator.isDefined(p.inputStyle))
+                        p.inputStyle = xvt.defaultInputStyle;
+                    for (let n = 0; n < p.inputStyle.length; n++)
+                        out(p.inputStyle[n]);
                 }
                 if (!xvt.eol && !xvt.enter.length)
                     xvt.enter = ' ';
@@ -80,6 +164,7 @@ var xvt;
                 }
                 if (xvt.validator.isBoolean(p.pause))
                     rubout(p.prompt.length);
+                out(xvt.reset);
                 p.cb();
             });
         }
@@ -97,6 +182,8 @@ var xvt;
     xvt.eol = true;
     xvt.entryMin = 0;
     xvt.entryMax = 0;
+    xvt.defaultInputStyle = [xvt.bright, xvt.white];
+    xvt.defaultPromptStyle = [xvt.cyan];
     function read() {
         return __awaiter(this, void 0, void 0, function* () {
             xvt.entry = '';
@@ -278,64 +365,6 @@ var xvt;
         process.stdout.write(attr(...out), xvt.emulation == 'XT' ? 'utf8' : 'ascii');
     }
     xvt.out = out;
-    xvt.cll = -2;
-    xvt.clear = -1;
-    xvt.reset = 0; // all attributes off, default color
-    xvt.bright = 1;
-    xvt.faint = 2;
-    xvt.uline = 4;
-    xvt.blink = 5;
-    xvt.reverse = 7;
-    xvt.off = 20; //  turn any attribute on -> off, except color
-    xvt.nobright = 21;
-    xvt.nofaint = 22;
-    xvt.nouline = 24;
-    xvt.noblink = 25;
-    xvt.normal = 27;
-    xvt.black = 30;
-    xvt.red = 31;
-    xvt.green = 32;
-    xvt.yellow = 33;
-    xvt.blue = 34;
-    xvt.magenta = 35;
-    xvt.cyan = 36;
-    xvt.white = 37;
-    xvt.Black = 40;
-    xvt.Red = 41;
-    xvt.Green = 42;
-    xvt.Yellow = 43;
-    xvt.Blue = 44;
-    xvt.Magenta = 45;
-    xvt.Cyan = 46;
-    xvt.White = 47;
-    //  ░ ▒ ▓ █ 
-    xvt.LGradient = {
-        VT: '\x1B(0\x1B[2ma\x1B[ma\x1B[7m \x1B[1m \x1B[27m\x1B(B',
-        PC: '\xB0\xB1\xB2\xDB',
-        XT: '\u2591\u2592\u2593\u2588',
-        dumb: ' :: '
-    };
-    //  █ ▓ ▒ ░ 
-    xvt.RGradient = {
-        VT: '\x1B(0\x1B[1;7m \x1B[21m \x1B[ma\x1B[2ma\x1B[m\x1B(B',
-        PC: '\xDB\xB2\xB1\xB0',
-        XT: '\u2588\u2593\u2592\u2591',
-        dumb: ' :: '
-    };
-    //  ─ └ ┴ ┘ ├ ┼ ┤ ┌ ┬ ┐ │
-    xvt.Draw = {
-        VT: ['q', 'm', 'v', 'j', 't', 'n', 'u', 'l', 'w', 'k', 'x'],
-        PC: ['\xC4', '\xC0', '\xC1', '\xD9', '\xC3', '\xC5', '\xB4', '\xDA', '\xC2', '\xBF', '\xB3'],
-        XT: ['\u2500', '\u2514', '\u2534', '\u2518', '\u251C', '\u253C', '\u2524', '\u250C', '\u252C', '\u2510', '\u2502'],
-        dumb: ['-', '+', '^', '+', '>', '+', '<', '+', 'v', '+', '|']
-    };
-    //  · 
-    xvt.Empty = {
-        VT: '\x1B(0\x7E\x1B(B',
-        PC: '\xFA',
-        XT: '\u00B7',
-        dumb: '.'
-    };
     let _SGR = ''; //  Select Graphic Rendition
     let _text = ''; //  buffer constructed emulation output(s)
     function SGR(attr) {
@@ -394,6 +423,8 @@ var xvt;
             out(' ** disconnect ** \n');
             hangup();
         }
+        if (xvt.validator.isEmpty(xvt.app.focus) && !xvt.echo)
+            return;
         //  rubout
         if (k == '\x08' || k == '\x7F') {
             if (xvt.eol && input.length > 0) {

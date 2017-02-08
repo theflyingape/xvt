@@ -21,54 +21,13 @@ declare module xvt {
         match?: RegExp;
         pause?: boolean;
         timeout?: number;
+        inputStyle?: any[];
+        promptStyle?: any[];
     }
     interface iField {
         [key: string]: Field;
     }
-    interface Form {
-        prompts: iField[];
-    }
-    interface iForm {
-        [key: string]: Form;
-    }
     const validator: Validator;
-    class session {
-        constructor();
-        private _fields;
-        private _focus;
-        form: iField;
-        focus: string | number;
-        refocus(): void;
-        private _read();
-    }
-    let app: session;
-    let modem: boolean;
-    let defaultTimeout: number;
-    let idleTimeout: number;
-    let pollingMS: number;
-    let sessionAllowed: number;
-    let sessionStart: Date;
-    let entry: string;
-    let enter: string;
-    let cancel: string;
-    let echo: boolean;
-    let eol: boolean;
-    let entryMin: number;
-    let entryMax: number;
-    function read(): Promise<void>;
-    function wait(ms: number): Promise<{}>;
-    function waste(ms: number): void;
-    let color: number;
-    let bold: boolean;
-    let dark: boolean;
-    let ul: boolean;
-    let flash: boolean;
-    let rvs: boolean;
-    let emulation: string;
-    function attr(...out: any[]): string;
-    function beep(): void;
-    function hangup(): void;
-    function out(...out: any[]): void;
     const cll = -2;
     const clear = -1;
     const reset = 0;
@@ -123,6 +82,46 @@ declare module xvt {
         XT: string;
         dumb: string;
     };
+    class session {
+        constructor();
+        private _fields;
+        private _focus;
+        form: iField;
+        focus: string | number;
+        nofocus(keep?: boolean): void;
+        refocus(): void;
+        private _read();
+    }
+    let app: session;
+    let modem: boolean;
+    let defaultTimeout: number;
+    let idleTimeout: number;
+    let pollingMS: number;
+    let sessionAllowed: number;
+    let sessionStart: Date;
+    let entry: string;
+    let enter: string;
+    let cancel: string;
+    let echo: boolean;
+    let eol: boolean;
+    let entryMin: number;
+    let entryMax: number;
+    let defaultInputStyle: any;
+    let defaultPromptStyle: any;
+    function read(): Promise<void>;
+    function wait(ms: number): Promise<{}>;
+    function waste(ms: number): void;
+    let color: number;
+    let bold: boolean;
+    let dark: boolean;
+    let ul: boolean;
+    let flash: boolean;
+    let rvs: boolean;
+    let emulation: string;
+    function attr(...out: any[]): string;
+    function beep(): void;
+    function hangup(): void;
+    function out(...out: any[]): void;
     function plot(row: number, col: number): void;
     function rubout(n?: number, c?: string): void;
 }

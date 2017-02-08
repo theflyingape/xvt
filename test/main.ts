@@ -24,9 +24,6 @@ xvt.app.form = {
 	'username': { cb:login, prompt:'Username: ', min:3, max:10 },
 	'password': { cb:password, echo:false, min:4, timeout:150 }
 }
-
-xvt.out('Wasting 2-secs until a pause ... ')
-xvt.waste(2000)
-xvt.out('\n')
 xvt.app.focus = 'pause'
+
 }
