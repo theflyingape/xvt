@@ -4,7 +4,7 @@
     "module": "commonjs",
     "moduleResolution": "node",
     "declaration": false,
-    "outDir": ".."
+    "outDir": "."
   },
   "exclude": [
 	  "node_modules",

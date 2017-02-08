@@ -20,7 +20,7 @@ xvt.app.focus = 'username'
 **class-validator** is loaded to assist with user input validation functions:
 ```
 function email() {
-	if (xvt.validator.isEmail(tty.entry)) {
+	if (xvt.validator.isEmail(xvt.entry)) {
 		xvt.out('\nThat email address looks OK by me.')
 		xvt.app.focus = 1
 	}
