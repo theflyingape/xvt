@@ -19,6 +19,7 @@ export interface Field {
 	enter?: string
 	echo?: boolean
 	eol?: boolean
+    eraser?: string
 	min?: number
 	max?: number
 	match?: RegExp
@@ -189,6 +190,14 @@ export class session {
         idleTimeout = validator.isDefined(p.timeout) ? p.timeout : defaultTimeout
         entryMin = validator.isDefined(p.min) ? p.min : 0
         entryMax = validator.isDefined(p.max) ? p.max : (eol ? 0 : 1)
+        eraser = validator.isDefined(p.eraser) ? p.eraser : ' '
+
+        if(row && col && echo && entryMax) {
+            for(let i = 0; i < entryMax; i++)
+                out(eraser)
+            for(let i = 0; i < entryMax; i++)
+                out('\x08')
+        }
 
         await read()
 
@@ -199,8 +208,10 @@ export class session {
             }
         }
 
-        if (validator.isBoolean(p.pause))
+        if (validator.isBoolean(p.pause)) {
+            echo = true
             rubout(p.prompt.length)
+        }
 
         out(reset)
         p.cb()
@@ -223,6 +234,7 @@ export let echo: boolean = true
 export let eol: boolean = true
 export let entryMin: number = 0
 export let entryMax: number = 0
+export let eraser: string = ' '
 export let defaultInputStyle: any = [ bright, white ]
 export let defaultPromptStyle: any = [ cyan ]
 
@@ -238,16 +250,26 @@ export async function read() {
         }
     }
 
-    input = ''
-
     if (!retry) {
-        out(' ** timeout **\n', reset)
-        if (cancel.length)
+        if (cancel.length) {
+            rubout(input.length)
             entry = cancel
-        else
+            out(entry)
+        }
+        else {
+            out(' ** timeout **\n', reset)
             hangup()
+        }
         //return new Promise(reject => 'timeout')
     }
+
+    if (cancel.length && entry == '[ESC]') {
+        rubout(input.length)
+        entry = cancel
+        out(entry)
+    }
+
+    input = ''
 }
 
 export function wait(ms: number) {
@@ -457,9 +479,10 @@ export function plot(row: number, col: number) {
     out('\x1B[', row.toString(), ';', col.toString(), 'H')
 }
 
-export function rubout(n = 1, c = ' ') {
-    for (let i = 0; i < n; i++)
-        out('\x08', c, '\x08')
+export function rubout(n = 1) {
+    if (echo)
+        for (let i = 0; i < n; i++)
+            out('\x08', eraser, '\x08')
 }
 
 //  signal & stdin event handlers
@@ -491,7 +514,7 @@ process.stdin.on('data', function(key: Buffer) {
     if (k == '\x08' || k == '\x7F') {
         if (eol && input.length > 0) {
             input = input.substr(0, input.length - 1)
-            if (echo) rubout()
+            rubout()
             return
         }
         else {
@@ -502,7 +525,7 @@ process.stdin.on('data', function(key: Buffer) {
 
     //  ctrl-u or ctrl-x cancel typeahead
     if (k == '\x15' || k == '\x18') {
-        if(echo) rubout(input.length)
+        rubout(input.length)
         input = ''
         return
     }
@@ -524,9 +547,19 @@ process.stdin.on('data', function(key: Buffer) {
 
     //  eat other control keys
     if (k < ' ') {
-        if (eol) return
-        //  let's cook any cursor key event if not a line entry prompt
+        if (eol) {
+            if (cancel.length) {
+                rubout(input.length)
+                entry = cancel
+                out(entry)
+            }
+            else
+                entry = input
+            return
+        }
+        //  let's cook for a special key event, if not prompting for a line of text
         if(k === '\x1B') {
+            rubout(input.length)
             k = key.toString(emulation == 'XT' ? 'utf8' : 'ascii', 1, key.length)
             switch(k) {
                 case '[A':
@@ -580,6 +613,21 @@ process.stdin.on('data', function(key: Buffer) {
                     break
                 case '[24~':
                     k = '[F12]'
+                    break
+                case '[H':
+                    k = '[HOME]'
+                    break
+                case '[F':
+                    k = '[END]'
+                    break
+                case '[2~':
+                    k = '[INS]'
+                    break
+                case '[3~':
+                    k = '[DEL]'
+                    break
+                default:
+                    k = '[ESC]'
                     break
             }
         }

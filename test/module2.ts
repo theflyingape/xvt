@@ -46,8 +46,8 @@ function logoff() {
 xvt.app.form = {
 	1: { cb:start2, pause:true },
 	'email': { cb:email, prompt:'E-mail: ' },
-	2: { cb:fight, prompt:'<A>ttack, <C>ast a spell, or <R>etreat: ', enter:'a', eol:false, match:/A|C|R/i },
-	3: { cb:logoff, prompt:'Logoff (Yes/No)? ', match:/Y|N/i, max:3 }
+	2: { cb:fight, prompt:'<A>ttack, <C>ast a spell, or <R>etreat: ', cancel:'r', enter:'a', eol:false, match:/A|C|R/i },
+	3: { cb:logoff, prompt:'Logoff (Yes/No)? ', cancel:'n', enter:'y', match:/Y|N/i, max:3, timeout:5 }
 }
 
 xvt.app.focus = 1

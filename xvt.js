@@ -162,8 +162,10 @@ var xvt;
                         return;
                     }
                 }
-                if (xvt.validator.isBoolean(p.pause))
+                if (xvt.validator.isBoolean(p.pause)) {
+                    xvt.echo = true;
                     rubout(p.prompt.length);
+                }
                 out(xvt.reset);
                 p.cb();
             });
@@ -195,14 +197,23 @@ var xvt;
                     beep();
                 }
             }
-            input = '';
             if (!retry) {
-                out(' ** timeout **\n', xvt.reset);
-                if (xvt.cancel.length)
+                if (xvt.cancel.length) {
+                    rubout(input.length);
                     xvt.entry = xvt.cancel;
-                else
+                    out(xvt.entry);
+                }
+                else {
+                    out(' ** timeout **\n', xvt.reset);
                     hangup();
+                }
             }
+            if (xvt.cancel.length && xvt.entry == '[ESC]') {
+                rubout(input.length);
+                xvt.entry = xvt.cancel;
+                out(xvt.entry);
+            }
+            input = '';
         });
     }
     xvt.read = read;
@@ -401,8 +412,9 @@ var xvt;
     }
     xvt.plot = plot;
     function rubout(n = 1, c = ' ') {
-        for (let i = 0; i < n; i++)
-            out('\x08', c, '\x08');
+        if (xvt.echo)
+            for (let i = 0; i < n; i++)
+                out('\x08', c, '\x08');
     }
     xvt.rubout = rubout;
     //  signal & stdin event handlers
@@ -429,8 +441,7 @@ var xvt;
         if (k == '\x08' || k == '\x7F') {
             if (xvt.eol && input.length > 0) {
                 input = input.substr(0, input.length - 1);
-                if (xvt.echo)
-                    rubout();
+                rubout();
                 return;
             }
             else {
@@ -440,8 +451,7 @@ var xvt;
         }
         //  ctrl-u or ctrl-x cancel typeahead
         if (k == '\x15' || k == '\x18') {
-            if (xvt.echo)
-                rubout(input.length);
+            rubout(input.length);
             input = '';
             return;
         }
@@ -463,10 +473,19 @@ var xvt;
         }
         //  eat other control keys
         if (k < ' ') {
-            if (xvt.eol)
+            if (xvt.eol) {
+                if (xvt.cancel.length) {
+                    rubout(input.length);
+                    xvt.entry = xvt.cancel;
+                    out(xvt.entry);
+                }
+                else
+                    xvt.entry = input;
                 return;
-            //  let's cook any cursor key event if not a line entry prompt
+            }
+            //  let's cook for a special key event, if not prompting for a line of text
             if (k === '\x1B') {
+                rubout(input.length);
                 k = key.toString(xvt.emulation == 'XT' ? 'utf8' : 'ascii', 1, key.length);
                 switch (k) {
                     case '[A':
@@ -520,6 +539,21 @@ var xvt;
                         break;
                     case '[24~':
                         k = '[F12]';
+                        break;
+                    case '[H':
+                        k = '[HOME]';
+                        break;
+                    case '[F':
+                        k = '[END]';
+                        break;
+                    case '[2~':
+                        k = '[INS]';
+                        break;
+                    case '[3~':
+                        k = '[DEL]';
+                        break;
+                    default:
+                        k = '[ESC]';
                         break;
                 }
             }
