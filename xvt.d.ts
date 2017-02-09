@@ -8,14 +8,15 @@
 import { Validator } from "class-validator";
 declare module xvt {
     interface Field {
+        cb: Function;
         row?: number;
         col?: number;
         prompt?: string;
-        cb: Function;
         cancel?: string;
         enter?: string;
         echo?: boolean;
         eol?: boolean;
+        eraser?: string;
         min?: number;
         max?: number;
         match?: RegExp;
@@ -99,6 +100,7 @@ declare module xvt {
     let pollingMS: number;
     let sessionAllowed: number;
     let sessionStart: Date;
+    let terminator: string;
     let entry: string;
     let enter: string;
     let cancel: string;
@@ -106,6 +108,7 @@ declare module xvt {
     let eol: boolean;
     let entryMin: number;
     let entryMax: number;
+    let eraser: string;
     let defaultInputStyle: any;
     let defaultPromptStyle: any;
     function read(): Promise<void>;
@@ -123,6 +126,6 @@ declare module xvt {
     function hangup(): void;
     function out(...out: any[]): void;
     function plot(row: number, col: number): void;
-    function rubout(n?: number, c?: string): void;
+    function rubout(n?: number): void;
 }
 export = xvt;

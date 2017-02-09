@@ -11,10 +11,10 @@ import {Validator} from "class-validator"
 module xvt {
 
 export interface Field {
+	cb: Function
 	row?: number
 	col?: number
 	prompt?: string
-	cb: Function
     cancel?: string
 	enter?: string
 	echo?: boolean
@@ -130,6 +130,7 @@ export class session {
         let p = this._fields[name]
         if (!validator.isDefined(p)) {
             out('\n?xvt form error, field undefined: "', name,'"\n')
+            this.refocus()
             return
         }
         this._focus = name
@@ -226,6 +227,7 @@ export let idleTimeout: number
 export let pollingMS: number = 100
 export let sessionAllowed: number
 export let sessionStart: Date = new Date()
+export let terminator: string
 
 export let entry: string = ''
 export let enter: string = ''
@@ -239,11 +241,12 @@ export let defaultInputStyle: any = [ bright, white ]
 export let defaultPromptStyle: any = [ cyan ]
 
 export async function read() {
-    entry = ''
     let retry = idleTimeout * (1000 / pollingMS)
     let warn = retry / 2
+    entry = ''
+    terminator = null
 
-    while (--retry && !entry.length) {
+    while (--retry && validator.isEmpty(terminator)) {
         await wait(pollingMS)
         if (idleTimeout > 0 && retry == warn) {
             beep()
@@ -269,6 +272,12 @@ export async function read() {
         out(entry)
     }
 
+    //  sanity resets back to default stdin processing
+    echo = true
+    eol = true
+    entryMin = 0
+    entryMax = 0
+    eraser = ' '
     input = ''
 }
 
@@ -542,6 +551,7 @@ process.stdin.on('data', function(key: Buffer) {
             if(echo) out(input)
         }
         entry = input
+        terminator = k
         return
     }
 
@@ -555,6 +565,7 @@ process.stdin.on('data', function(key: Buffer) {
             }
             else
                 entry = input
+            terminator = k
             return
         }
         //  let's cook for a special key event, if not prompting for a line of text
@@ -634,7 +645,8 @@ process.stdin.on('data', function(key: Buffer) {
         else {
             k = '^' + String.fromCharCode(64 + k.charCodeAt(0))
         }
-        entry = k
+        entry = input
+        terminator = k
         return
     }
 
@@ -650,6 +662,7 @@ process.stdin.on('data', function(key: Buffer) {
     //  terminate entry if input size is met
     if (!eol && input.length >= entryMax) {
         entry = input
+        terminator = k
     }
 })
 

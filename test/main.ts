@@ -3,10 +3,6 @@ import xvt = require('../xvt')
 module main
 {
 
-function start() {
-	xvt.app.focus = 'username'
-}
-
 function login() {
 	let username = xvt.entry.toUpperCase()
 	xvt.app.form['password'].prompt = `Enter ${username} password: `
@@ -20,7 +16,7 @@ function password() {
 
 xvt.modem = true
 xvt.app.form = {
-	'pause': { cb:start, pause:true },
+	'pause': { cb:() => { xvt.app.focus = 'username'}, pause:true },
 	'username': { cb:login, prompt:'Username: ', min:3, max:10 },
 	'password': { cb:password, echo:false, min:4, timeout:15 }
 }

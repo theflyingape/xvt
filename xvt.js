@@ -101,6 +101,7 @@ var xvt;
             let p = this._fields[name];
             if (!xvt.validator.isDefined(p)) {
                 out('\n?xvt form error, field undefined: "', name, '"\n');
+                this.refocus();
                 return;
             }
             this._focus = name;
@@ -155,6 +156,13 @@ var xvt;
                 xvt.idleTimeout = xvt.validator.isDefined(p.timeout) ? p.timeout : xvt.defaultTimeout;
                 xvt.entryMin = xvt.validator.isDefined(p.min) ? p.min : 0;
                 xvt.entryMax = xvt.validator.isDefined(p.max) ? p.max : (xvt.eol ? 0 : 1);
+                xvt.eraser = xvt.validator.isDefined(p.eraser) ? p.eraser : ' ';
+                if (row && col && xvt.echo && xvt.entryMax) {
+                    for (let i = 0; i < xvt.entryMax; i++)
+                        out(xvt.eraser);
+                    for (let i = 0; i < xvt.entryMax; i++)
+                        out('\x08');
+                }
                 yield read();
                 if (xvt.validator.isDefined(p.match)) {
                     if (!p.match.test(xvt.entry)) {
@@ -184,14 +192,16 @@ var xvt;
     xvt.eol = true;
     xvt.entryMin = 0;
     xvt.entryMax = 0;
+    xvt.eraser = ' ';
     xvt.defaultInputStyle = [xvt.bright, xvt.white];
     xvt.defaultPromptStyle = [xvt.cyan];
     function read() {
         return __awaiter(this, void 0, void 0, function* () {
-            xvt.entry = '';
             let retry = xvt.idleTimeout * (1000 / xvt.pollingMS);
             let warn = retry / 2;
-            while (--retry && !xvt.entry.length) {
+            xvt.entry = '';
+            xvt.terminator = null;
+            while (--retry && xvt.validator.isEmpty(xvt.terminator)) {
                 yield wait(xvt.pollingMS);
                 if (xvt.idleTimeout > 0 && retry == warn) {
                     beep();
@@ -213,6 +223,12 @@ var xvt;
                 xvt.entry = xvt.cancel;
                 out(xvt.entry);
             }
+            //  sanity resets back to default stdin processing
+            xvt.echo = true;
+            xvt.eol = true;
+            xvt.entryMin = 0;
+            xvt.entryMax = 0;
+            xvt.eraser = ' ';
             input = '';
         });
     }
@@ -411,10 +427,10 @@ var xvt;
         out('\x1B[', row.toString(), ';', col.toString(), 'H');
     }
     xvt.plot = plot;
-    function rubout(n = 1, c = ' ') {
+    function rubout(n = 1) {
         if (xvt.echo)
             for (let i = 0; i < n; i++)
-                out('\x08', c, '\x08');
+                out('\x08', xvt.eraser, '\x08');
     }
     xvt.rubout = rubout;
     //  signal & stdin event handlers
@@ -469,6 +485,7 @@ var xvt;
                     out(input);
             }
             xvt.entry = input;
+            xvt.terminator = k;
             return;
         }
         //  eat other control keys
@@ -481,6 +498,7 @@ var xvt;
                 }
                 else
                     xvt.entry = input;
+                xvt.terminator = k;
                 return;
             }
             //  let's cook for a special key event, if not prompting for a line of text
@@ -560,7 +578,8 @@ var xvt;
             else {
                 k = '^' + String.fromCharCode(64 + k.charCodeAt(0));
             }
-            xvt.entry = k;
+            xvt.entry = input;
+            xvt.terminator = k;
             return;
         }
         //  don't exceed maximum input allowed
@@ -574,6 +593,7 @@ var xvt;
         //  terminate entry if input size is met
         if (!xvt.eol && input.length >= xvt.entryMax) {
             xvt.entry = input;
+            xvt.terminator = k;
         }
     });
 })(xvt || (xvt = {}));
