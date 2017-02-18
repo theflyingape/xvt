@@ -111,6 +111,8 @@ export class session {
     constructor () {
         if (process.stdin.isTTY)
             process.stdin.setRawMode(true)
+        carrier = true
+        sessionStart = new Date()
     }
 
     private _fields: iField
@@ -219,15 +221,15 @@ export class session {
     }
 }
 
-export let app = new session()
+export let carrier = false
 export let modem = false
 
 export let defaultTimeout: number = -1
-export let idleTimeout: number
+export let idleTimeout: number = 0
 export let pollingMS: number = 100
-export let sessionAllowed: number
-export let sessionStart: Date = new Date()
-export let terminator: string
+export let sessionAllowed: number = 0
+export let sessionStart: Date = null
+export let terminator: string = null
 
 export let entry: string = ''
 export let enter: string = ''
@@ -240,33 +242,42 @@ export let eraser: string = ' '
 export let defaultInputStyle: any = [ bright, white ]
 export let defaultPromptStyle: any = [ cyan ]
 
+export let app = new session()
+
 export async function read() {
     let retry = idleTimeout * (1000 / pollingMS)
     let warn = retry / 2
     entry = ''
     terminator = null
 
-    while (--retry && validator.isEmpty(terminator)) {
+    while (carrier && --retry && validator.isEmpty(terminator)) {
         await wait(pollingMS)
         if (idleTimeout > 0 && retry == warn) {
             beep()
         }
+        if (retry < 1 && sessionAllowed > 0) {
+            let elapsed = (new Date().getTime() - sessionStart.getTime()) / 1000
+            if (elapsed > sessionAllowed) carrier = false
+        }
     }
 
-    if (!retry) {
+    if (!carrier || !retry) {
         if (cancel.length) {
             rubout(input.length)
             entry = cancel
             out(entry)
         }
         else {
-            out(' ** timeout **\n', reset)
+            beep()
+            if (!carrier) out(' ** your session expired **\n', reset)
+            if (!retry) out(' ** timeout **\n', reset)
+            waste(1000)
             hangup()
         }
         //return new Promise(reject => 'timeout')
     }
 
-    if (cancel.length && entry == '[ESC]') {
+    if (cancel.length && terminator === '\x1B') {
         rubout(input.length)
         entry = cancel
         out(entry)
@@ -435,16 +446,17 @@ export function beep() {
 export function hangup() {
     if (modem) {
         out(reset, '+++')
-        waste(600)
+        waste(500)
         out('\nOK\n')
-        waste(300)
+        waste(250)
         out('ATH\n')
-        waste(600)
+        waste(500)
         beep()
-        waste(200)
+        waste(250)
         out('NO CARRIER\n')
-        waste(300)
+        waste(500)
     }
+    carrier = false
     process.exit()
 }
 

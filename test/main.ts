@@ -15,6 +15,7 @@ function password() {
 }
 
 xvt.modem = true
+xvt.sessionAllowed = 60
 xvt.app.form = {
 	'pause': { cb:() => { xvt.app.focus = 'username'}, pause:true },
 	'username': { cb:login, prompt:'Username: ', min:3, max:10 },

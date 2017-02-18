@@ -93,7 +93,7 @@ declare module xvt {
         refocus(): void;
         private _read();
     }
-    let app: session;
+    let carrier: boolean;
     let modem: boolean;
     let defaultTimeout: number;
     let idleTimeout: number;
@@ -111,6 +111,7 @@ declare module xvt {
     let eraser: string;
     let defaultInputStyle: any;
     let defaultPromptStyle: any;
+    let app: session;
     function read(): Promise<void>;
     function wait(ms: number): Promise<{}>;
     function waste(ms: number): void;

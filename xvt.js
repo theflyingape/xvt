@@ -89,6 +89,8 @@ var xvt;
         constructor() {
             if (process.stdin.isTTY)
                 process.stdin.setRawMode(true);
+            xvt.carrier = true;
+            xvt.sessionStart = new Date();
         }
         get form() {
             return this._fields;
@@ -180,11 +182,14 @@ var xvt;
         }
     }
     xvt.session = session;
-    xvt.app = new session();
+    xvt.carrier = false;
     xvt.modem = false;
     xvt.defaultTimeout = -1;
+    xvt.idleTimeout = 0;
     xvt.pollingMS = 100;
-    xvt.sessionStart = new Date();
+    xvt.sessionAllowed = 0;
+    xvt.sessionStart = null;
+    xvt.terminator = null;
     xvt.entry = '';
     xvt.enter = '';
     xvt.cancel = '';
@@ -195,30 +200,41 @@ var xvt;
     xvt.eraser = ' ';
     xvt.defaultInputStyle = [xvt.bright, xvt.white];
     xvt.defaultPromptStyle = [xvt.cyan];
+    xvt.app = new session();
     function read() {
         return __awaiter(this, void 0, void 0, function* () {
             let retry = xvt.idleTimeout * (1000 / xvt.pollingMS);
             let warn = retry / 2;
             xvt.entry = '';
             xvt.terminator = null;
-            while (--retry && xvt.validator.isEmpty(xvt.terminator)) {
+            while (xvt.carrier && --retry && xvt.validator.isEmpty(xvt.terminator)) {
                 yield wait(xvt.pollingMS);
                 if (xvt.idleTimeout > 0 && retry == warn) {
                     beep();
                 }
+                if (retry < 1 && xvt.sessionAllowed > 0) {
+                    let elapsed = (new Date().getTime() - xvt.sessionStart.getTime()) / 1000;
+                    if (elapsed > xvt.sessionAllowed)
+                        xvt.carrier = false;
+                }
             }
-            if (!retry) {
+            if (!xvt.carrier || !retry) {
                 if (xvt.cancel.length) {
                     rubout(input.length);
                     xvt.entry = xvt.cancel;
                     out(xvt.entry);
                 }
                 else {
-                    out(' ** timeout **\n', xvt.reset);
+                    beep();
+                    if (!xvt.carrier)
+                        out(' ** your session expired **\n', xvt.reset);
+                    if (!retry)
+                        out(' ** timeout **\n', xvt.reset);
+                    waste(1000);
                     hangup();
                 }
             }
-            if (xvt.cancel.length && xvt.entry == '[ESC]') {
+            if (xvt.cancel.length && xvt.terminator === '\x1B') {
                 rubout(input.length);
                 xvt.entry = xvt.cancel;
                 out(xvt.entry);
@@ -375,16 +391,17 @@ var xvt;
     function hangup() {
         if (xvt.modem) {
             out(xvt.reset, '+++');
-            waste(600);
+            waste(500);
             out('\nOK\n');
-            waste(300);
+            waste(250);
             out('ATH\n');
-            waste(600);
+            waste(500);
             beep();
-            waste(200);
+            waste(250);
             out('NO CARRIER\n');
-            waste(300);
+            waste(500);
         }
+        xvt.carrier = false;
         process.exit();
     }
     xvt.hangup = hangup;
