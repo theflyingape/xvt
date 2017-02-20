@@ -252,10 +252,8 @@ export async function read() {
 
     while (carrier && --retry && validator.isEmpty(terminator)) {
         await wait(pollingMS)
-        if (idleTimeout > 0 && retry == warn) {
-            beep()
-        }
-        if (retry < 1 && sessionAllowed > 0) {
+        if (idleTimeout > 0 && retry == warn) beep()
+        if (sessionAllowed > 0 && !(retry % pollingMS)) {
             let elapsed = (new Date().getTime() - sessionStart.getTime()) / 1000
             if (elapsed > sessionAllowed) carrier = false
         }
@@ -553,14 +551,14 @@ process.stdin.on('data', function(key: Buffer) {
 
     //  any text entry mode requires <CR> as the input line terminator
     if (k == '\x0D') {
-        if (input.length < entryMin) {
-            if (! echo) input = ''
-            beep()
-            return
-        }
         if (!input.length && enter.length > 0) {
             input = enter
             if(echo) out(input)
+        }
+        else if (input.length < entryMin) {
+            if (! echo) input = ''
+            beep()
+            return
         }
         entry = input
         terminator = k
