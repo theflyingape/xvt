@@ -88,7 +88,7 @@ var xvt;
     class session {
         constructor() {
             if (process.stdin.isTTY)
-                process.stdin.setRawMode(true);
+                require('tty').setRawMode(true);
             xvt.carrier = true;
             xvt.sessionStart = new Date();
         }
@@ -184,6 +184,8 @@ var xvt;
     xvt.session = session;
     xvt.carrier = false;
     xvt.modem = false;
+    xvt.ondrop = () => { };
+    xvt.reason = '';
     xvt.defaultTimeout = -1;
     xvt.idleTimeout = 0;
     xvt.pollingMS = 100;
@@ -209,16 +211,16 @@ var xvt;
             xvt.terminator = null;
             while (xvt.carrier && --retry && xvt.validator.isEmpty(xvt.terminator)) {
                 yield wait(xvt.pollingMS);
-                if (xvt.idleTimeout > 0 && retry == warn) {
+                if (xvt.idleTimeout > 0 && retry == warn)
                     beep();
-                }
-                if (retry < 1 && xvt.sessionAllowed > 0) {
+                if (xvt.sessionAllowed > 0 && !(retry % xvt.pollingMS)) {
                     let elapsed = (new Date().getTime() - xvt.sessionStart.getTime()) / 1000;
                     if (elapsed > xvt.sessionAllowed)
                         xvt.carrier = false;
                 }
             }
             if (!xvt.carrier || !retry) {
+                //  any remaining cancel operations will take over, else bye-bye
                 if (xvt.cancel.length) {
                     rubout(input.length);
                     xvt.entry = xvt.cancel;
@@ -226,10 +228,14 @@ var xvt;
                 }
                 else {
                     beep();
-                    if (!xvt.carrier)
+                    if (!xvt.carrier) {
                         out(' ** your session expired **\n', xvt.reset);
-                    if (!retry)
+                        xvt.reason = 'got exhausted';
+                    }
+                    if (!retry) {
                         out(' ** timeout **\n', xvt.reset);
+                        xvt.reason = 'fallen asleep';
+                    }
                     waste(1000);
                     hangup();
                 }
@@ -389,6 +395,8 @@ var xvt;
     }
     xvt.beep = beep;
     function hangup() {
+        xvt.carrier = false;
+        xvt.ondrop();
         if (xvt.modem) {
             out(xvt.reset, '+++');
             waste(500);
@@ -401,7 +409,6 @@ var xvt;
             out('NO CARRIER\n');
             waste(500);
         }
-        xvt.carrier = false;
         process.exit();
     }
     xvt.hangup = hangup;
@@ -454,10 +461,12 @@ var xvt;
     let input = '';
     process.on('SIGHUP', function () {
         out(' ** hangup ** \n', xvt.reset);
+        xvt.reason = 'hangup';
         hangup();
     });
     process.on('SIGINT', function () {
         out(' ** interrupt ** \n', xvt.reset);
+        xvt.reason = 'interrupted';
         hangup();
     });
     //  capture VT user input
@@ -466,6 +475,7 @@ var xvt;
         //  ctrl-d or ctrl-z to disconnect the session
         if (k == '\x04' || k == '\x1A') {
             out(' ** disconnect ** \n');
+            xvt.reason = 'had something better to do';
             hangup();
         }
         if (xvt.validator.isEmpty(xvt.app.focus) && !xvt.echo)
@@ -490,16 +500,16 @@ var xvt;
         }
         //  any text entry mode requires <CR> as the input line terminator
         if (k == '\x0D') {
-            if (input.length < xvt.entryMin) {
-                if (!xvt.echo)
-                    input = '';
-                beep();
-                return;
-            }
             if (!input.length && xvt.enter.length > 0) {
                 input = xvt.enter;
                 if (xvt.echo)
                     out(input);
+            }
+            else if (input.length < xvt.entryMin) {
+                if (!xvt.echo)
+                    input = '';
+                beep();
+                return;
             }
             xvt.entry = input;
             xvt.terminator = k;

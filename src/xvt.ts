@@ -110,7 +110,7 @@ export class session {
 
     constructor () {
         if (process.stdin.isTTY)
-            process.stdin.setRawMode(true)
+            require('tty').setRawMode(true)
         carrier = true
         sessionStart = new Date()
     }
@@ -223,6 +223,8 @@ export class session {
 
 export let carrier = false
 export let modem = false
+export let ondrop = () => {}
+export let reason = ''
 
 export let defaultTimeout: number = -1
 export let idleTimeout: number = 0
@@ -260,6 +262,7 @@ export async function read() {
     }
 
     if (!carrier || !retry) {
+        //  any remaining cancel operations will take over, else bye-bye
         if (cancel.length) {
             rubout(input.length)
             entry = cancel
@@ -267,8 +270,14 @@ export async function read() {
         }
         else {
             beep()
-            if (!carrier) out(' ** your session expired **\n', reset)
-            if (!retry) out(' ** timeout **\n', reset)
+            if (!carrier) {
+                out(' ** your session expired **\n', reset)
+                reason = 'got exhausted'
+            }
+            if (!retry) {
+                out(' ** timeout **\n', reset)
+                reason = 'fallen asleep'
+            }
             waste(1000)
             hangup()
         }
@@ -442,6 +451,9 @@ export function beep() {
 }
 
 export function hangup() {
+    carrier = false
+    ondrop()
+
     if (modem) {
         out(reset, '+++')
         waste(500)
@@ -454,7 +466,7 @@ export function hangup() {
         out('NO CARRIER\n')
         waste(500)
     }
-    carrier = false
+
     process.exit()
 }
 
@@ -509,11 +521,13 @@ let input: string = ''
 
 process.on('SIGHUP', function () {
     out(' ** hangup ** \n', reset)
+    reason = 'hangup'
     hangup()
 })
 
 process.on('SIGINT', function () {
     out(' ** interrupt ** \n', reset)
+    reason = 'interrupted'
     hangup()
 })
 
@@ -524,6 +538,7 @@ process.stdin.on('data', function(key: Buffer) {
     //  ctrl-d or ctrl-z to disconnect the session
     if (k == '\x04' || k == '\x1A') {
         out(' ** disconnect ** \n')
+        reason = 'had something better to do'
         hangup()
     }
 
