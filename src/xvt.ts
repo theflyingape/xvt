@@ -503,7 +503,6 @@ async function enquiry(ENQ: string) {
     for (let retry = 5; retry && !input.length; retry--)
         await this.wait(100)
     entry = input
-    console.log(input)
     input = ''
 }
 
