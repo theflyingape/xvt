@@ -224,7 +224,7 @@ export class session {
 
 export let carrier = false
 export let modem = false
-export let ondrop = () => {}
+export let ondrop: Function
 export let reason = ''
 
 export let defaultTimeout: number = -1
@@ -453,7 +453,8 @@ export function beep() {
 
 export function hangup() {
     carrier = false
-    ondrop()
+    if (ondrop) ondrop()
+    ondrop = null
 
     if (modem) {
         out(reset, '+++')

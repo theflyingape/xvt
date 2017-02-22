@@ -185,7 +185,6 @@ var xvt;
     xvt.session = session;
     xvt.carrier = false;
     xvt.modem = false;
-    xvt.ondrop = () => { };
     xvt.reason = '';
     xvt.defaultTimeout = -1;
     xvt.idleTimeout = 0;
@@ -397,7 +396,9 @@ var xvt;
     xvt.beep = beep;
     function hangup() {
         xvt.carrier = false;
-        xvt.ondrop();
+        if (xvt.ondrop)
+            xvt.ondrop();
+        xvt.ondrop = null;
         if (xvt.modem) {
             out(xvt.reset, '+++');
             waste(500);

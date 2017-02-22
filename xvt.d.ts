@@ -95,7 +95,7 @@ declare module xvt {
     }
     let carrier: boolean;
     let modem: boolean;
-    let ondrop: () => void;
+    let ondrop: Function;
     let reason: string;
     let defaultTimeout: number;
     let idleTimeout: number;
