@@ -444,7 +444,6 @@ var xvt;
             for (let retry = 5; retry && !input.length; retry--)
                 yield this.wait(100);
             xvt.entry = input;
-            console.log(input);
             input = '';
         });
     }
