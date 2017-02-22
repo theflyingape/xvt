@@ -109,8 +109,9 @@ export const Empty = {
 export class session {
 
     constructor () {
-        if (process.stdin.isTTY)
-            require('tty').setRawMode(true)
+        const tty = require('tty')
+        if (tty.isatty(0))
+            tty.ReadStream().setRawMode(true)
         carrier = true
         sessionStart = new Date()
     }
