@@ -14,10 +14,6 @@ var __awaiter = (this && this.__awaiter) || function (thisArg, _arguments, P, ge
         step((generator = generator.apply(thisArg, _arguments || [])).next());
     });
 };
-const tty = require('tty');
-console.log(tty);
-if (tty.isatty(0))
-    tty.ReadStream().setRawMode(true);
 const class_validator_1 = require("class-validator");
 var xvt;
 (function (xvt) {
@@ -91,6 +87,9 @@ var xvt;
     };
     class session {
         constructor() {
+            const tty = require('tty');
+            if (tty.isatty(0))
+                tty.ReadStream().setRawMode(true);
             xvt.carrier = true;
             xvt.sessionStart = new Date();
         }

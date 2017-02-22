@@ -1,3 +1,10 @@
+/*****************************************************************************\
+ *  XVT authored by: Robert Hurst <theflyingape@gmail.com>                   *
+ *      an event-driven terminal session handler                             *
+ *                                                                           *
+ * - emulation interface: dumb, VT100, ANSI-PC, ANSI-UTF emulation           *
+ * - user input interface: formatted and roll-and-scroll                     *
+\*****************************************************************************/
 import { Validator } from "class-validator";
 declare module xvt {
     interface Field {
