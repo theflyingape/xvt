@@ -128,6 +128,7 @@ declare module xvt {
     function beep(): void;
     function hangup(): void;
     function out(...out: any[]): void;
+    function enquiry(ENQ: string): Promise<void>;
     function plot(row: number, col: number): void;
     function rubout(n?: number): void;
 }

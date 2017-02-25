@@ -239,6 +239,7 @@ var xvt;
                     waste(1000);
                     hangup();
                 }
+                //return new Promise(reject => 'timeout')
             }
             if (xvt.cancel.length && xvt.terminator === '\x1B') {
                 rubout(input.length);
@@ -448,6 +449,7 @@ var xvt;
             input = '';
         });
     }
+    xvt.enquiry = enquiry;
     function plot(row, col) {
         out('\x1B[', row.toString(), ';', col.toString(), 'H');
     }

@@ -1,6 +1,6 @@
 {
   "name": "xvt",
-  "version": "1.0.10",
+  "version": "1.0.11",
   "description": "an event-driven terminal session handler",
   "main": "./xvt.js",
   "types": "./xvt.d.ts",
@@ -12,7 +12,7 @@
   },
   "scripts": {
     "build": "tsc",
-    "test": "cd test; tsc; node main; cd -"
+    "test": "tsc -p ./test --outDir ./test; node ./test/main"
   },
   "repository": {
     "type": "git",

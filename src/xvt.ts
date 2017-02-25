@@ -496,7 +496,7 @@ function text(s) {
         }
        _text += s
 }
-async function enquiry(ENQ: string) {
+export async function enquiry(ENQ: string) {
     input = ''
     echo = false
     eol = true
