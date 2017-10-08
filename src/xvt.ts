@@ -111,7 +111,7 @@ export class session {
     constructor () {
         const tty = require('tty')
         if (tty.isatty(0))
-            tty.ReadStream().setRawMode(true)
+            tty.ReadStream(0).setRawMode(true)
         carrier = true
         sessionStart = new Date()
     }

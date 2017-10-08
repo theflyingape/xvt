@@ -1,3 +1,4 @@
+"use strict";
 /*****************************************************************************\
  *  XVT authored by: Robert Hurst <theflyingape@gmail.com>                   *
  *      an event-driven terminal session handler                             *
@@ -5,7 +6,6 @@
  * - emulation interface: dumb, VT100, ANSI-PC, ANSI-UTF emulation           *
  * - user input interface: formatted and roll-and-scroll                     *
 \*****************************************************************************/
-"use strict";
 var __awaiter = (this && this.__awaiter) || function (thisArg, _arguments, P, generator) {
     return new (P || (P = Promise))(function (resolve, reject) {
         function fulfilled(value) { try { step(generator.next(value)); } catch (e) { reject(e); } }
@@ -89,7 +89,7 @@ var xvt;
         constructor() {
             const tty = require('tty');
             if (tty.isatty(0))
-                tty.ReadStream().setRawMode(true);
+                tty.ReadStream(0).setRawMode(true);
             xvt.carrier = true;
             xvt.sessionStart = new Date();
         }
