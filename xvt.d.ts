@@ -39,10 +39,10 @@ declare module xvt {
     const reverse = 7;
     const off = 20;
     const nobright = 21;
-    const nofaint = 22;
+    const normal = 22;
     const nouline = 24;
     const noblink = 25;
-    const normal = 27;
+    const noreverse = 27;
     const black = 30;
     const red = 31;
     const green = 32;
@@ -119,7 +119,7 @@ declare module xvt {
     function waste(ms: number): void;
     let color: number;
     let bold: boolean;
-    let dark: boolean;
+    let dim: boolean;
     let ul: boolean;
     let flash: boolean;
     let rvs: boolean;

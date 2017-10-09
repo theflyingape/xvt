@@ -42,7 +42,7 @@ export interface iForm {
 }
 */
 export const validator = new Validator()
-
+//  SGR (https://en.wikipedia.org/wiki/ANSI_escape_code#SGR_.28Select_Graphic_Rendition.29_parameters)
 export const cll        = -2
 export const clear      = -1
 export const reset      =  0    // all attributes off, default color
@@ -52,11 +52,11 @@ export const uline      =  4
 export const blink      =  5
 export const reverse    =  7
 export const off        = 20    //  turn any attribute on -> off, except color
-export const nobright   = 21
-export const nofaint    = 22
+export const nobright   = 21    //  not widely supported: cancels bold only
+export const normal     = 22    //  cancels bold (really?) and faint
 export const nouline    = 24
 export const noblink    = 25
-export const normal     = 27
+export const noreverse  = 27
 export const black      = 30
 export const red        = 31
 export const green      = 32
@@ -309,9 +309,10 @@ export function waste(ms: number) {
     while (new Date().getTime() <= start) {}
 }
 
+//  SGR registers
 export let color: number
 export let bold: boolean
-export let dark: boolean
+export let dim: boolean
 export let ul: boolean
 export let flash: boolean
 export let rvs: boolean
@@ -334,40 +335,42 @@ export function attr(...out): string {
                     SGR('0')
                     color = white
                     bold = false
-                    dark = false
+                    dim = false
                     ul = false
                     flash = false
                     rvs = false
                     break
                 case bright:
-                    if (dark) {    //  gnome-terminal wants this conflicting attribute off first
-                        SGR(nofaint.toString())
-                        dark = false
+                    if (dim) {    //  make bright/dim intensity mutually exclusive
+                        SGR(normal.toString())
                         bold = false
+                        dim = false
                     }
                     if (! bold)
                         SGR(bright.toString())
                     bold = true
+                    break
+                case faint:
+                    if (bold) {    //  make bright/dim intensity mutually exclusive
+                        SGR(normal.toString())
+                        bold = false
+                        dim = false
+                    }
+                    if (! dim)
+                        SGR(faint.toString())
+                    dim = true
                     break
                 case nobright:
                     if (bold)
                         SGR(nobright.toString())
                     bold = false
                     break
-                case faint:
-                    if (bold) {    //  gnome-terminal wants this conflicting attribute off first
-                        SGR(nobright.toString())
+                case normal:
+                    if (bold || dim) {
+                        SGR(normal.toString())
                         bold = false
-                        dark = false
+                        dim = false
                     }
-                    if (! dark)
-                        SGR(faint.toString())
-                    dark = true
-                    break
-                case nofaint:
-                    if (dark)
-                        SGR(nofaint.toString())
-                    dark = false
                     break
                 case uline:
                     if (! ul)
@@ -394,15 +397,15 @@ export function attr(...out): string {
                         SGR(reverse.toString())
                     rvs = true
                     break
-                case normal:
+                case noreverse:
                     if (rvs)
-                        SGR(normal.toString())
+                        SGR(noreverse.toString())
                     rvs = false
                     break
                 case off:
                     if (bold)
                         SGR((off + bright).toString())
-                    if (dark)
+                    if (dim)
                         SGR((off + faint).toString())
                     if (ul)
                         SGR((off + uline).toString())
@@ -411,7 +414,7 @@ export function attr(...out): string {
                     if (rvs)
                         SGR((off + reverse).toString())
                     bold = false
-                    dark = false
+                    dim = false
                     ul = false
                     flash = false
                     rvs = false
@@ -456,17 +459,13 @@ export function hangup() {
     if (ondrop) ondrop()
     ondrop = null
 
+    //  2-seconds of retro-fun  :)
     if (modem) {
-        out(reset, '+++')
-        waste(500)
-        out('\nOK\n')
-        waste(250)
-        out('ATH\n')
-        waste(500)
-        beep()
-        waste(250)
-        out('NO CARRIER\n')
-        waste(500)
+        out(reset, '+++');      waste(500)
+        out('\nOK\n');          waste(250)
+        out('ATH\n');           waste(500)
+        beep();                 waste(250)
+        out('NO CARRIER\n');    waste(500)
     }
 
     process.exit()

@@ -27,6 +27,7 @@ var xvt;
     }
     */
     xvt.validator = new class_validator_1.Validator();
+    //  SGR (https://en.wikipedia.org/wiki/ANSI_escape_code#SGR_.28Select_Graphic_Rendition.29_parameters)
     xvt.cll = -2;
     xvt.clear = -1;
     xvt.reset = 0; // all attributes off, default color
@@ -36,11 +37,11 @@ var xvt;
     xvt.blink = 5;
     xvt.reverse = 7;
     xvt.off = 20; //  turn any attribute on -> off, except color
-    xvt.nobright = 21;
-    xvt.nofaint = 22;
+    xvt.nobright = 21; //  not widely supported: cancels bold only
+    xvt.normal = 22; //  cancels bold (really?) and faint
     xvt.nouline = 24;
     xvt.noblink = 25;
-    xvt.normal = 27;
+    xvt.noreverse = 27;
     xvt.black = 30;
     xvt.red = 31;
     xvt.green = 32;
@@ -280,40 +281,42 @@ var xvt;
                             SGR('0');
                             xvt.color = xvt.white;
                             xvt.bold = false;
-                            xvt.dark = false;
+                            xvt.dim = false;
                             xvt.ul = false;
                             xvt.flash = false;
                             xvt.rvs = false;
                             break;
                         case xvt.bright:
-                            if (xvt.dark) {
-                                SGR(xvt.nofaint.toString());
-                                xvt.dark = false;
+                            if (xvt.dim) {
+                                SGR(xvt.normal.toString());
                                 xvt.bold = false;
+                                xvt.dim = false;
                             }
                             if (!xvt.bold)
                                 SGR(xvt.bright.toString());
                             xvt.bold = true;
+                            break;
+                        case xvt.faint:
+                            if (xvt.bold) {
+                                SGR(xvt.normal.toString());
+                                xvt.bold = false;
+                                xvt.dim = false;
+                            }
+                            if (!xvt.dim)
+                                SGR(xvt.faint.toString());
+                            xvt.dim = true;
                             break;
                         case xvt.nobright:
                             if (xvt.bold)
                                 SGR(xvt.nobright.toString());
                             xvt.bold = false;
                             break;
-                        case xvt.faint:
-                            if (xvt.bold) {
-                                SGR(xvt.nobright.toString());
+                        case xvt.normal:
+                            if (xvt.bold || xvt.dim) {
+                                SGR(xvt.normal.toString());
                                 xvt.bold = false;
-                                xvt.dark = false;
+                                xvt.dim = false;
                             }
-                            if (!xvt.dark)
-                                SGR(xvt.faint.toString());
-                            xvt.dark = true;
-                            break;
-                        case xvt.nofaint:
-                            if (xvt.dark)
-                                SGR(xvt.nofaint.toString());
-                            xvt.dark = false;
                             break;
                         case xvt.uline:
                             if (!xvt.ul)
@@ -340,15 +343,15 @@ var xvt;
                                 SGR(xvt.reverse.toString());
                             xvt.rvs = true;
                             break;
-                        case xvt.normal:
+                        case xvt.noreverse:
                             if (xvt.rvs)
-                                SGR(xvt.normal.toString());
+                                SGR(xvt.noreverse.toString());
                             xvt.rvs = false;
                             break;
                         case xvt.off:
                             if (xvt.bold)
                                 SGR((xvt.off + xvt.bright).toString());
-                            if (xvt.dark)
+                            if (xvt.dim)
                                 SGR((xvt.off + xvt.faint).toString());
                             if (xvt.ul)
                                 SGR((xvt.off + xvt.uline).toString());
@@ -357,7 +360,7 @@ var xvt;
                             if (xvt.rvs)
                                 SGR((xvt.off + xvt.reverse).toString());
                             xvt.bold = false;
-                            xvt.dark = false;
+                            xvt.dim = false;
                             xvt.ul = false;
                             xvt.flash = false;
                             xvt.rvs = false;
@@ -400,6 +403,7 @@ var xvt;
         if (xvt.ondrop)
             xvt.ondrop();
         xvt.ondrop = null;
+        //  2-seconds of retro-fun  :)
         if (xvt.modem) {
             out(xvt.reset, '+++');
             waste(500);
