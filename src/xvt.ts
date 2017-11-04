@@ -500,8 +500,8 @@ export async function enquiry(ENQ: string) {
     echo = false
     eol = true
     out(ENQ)
-    for (let retry = 5; retry && !input.length; retry--)
-        await this.wait(100)
+    for (let retry = 10; retry && !input.length; retry--)
+        await this.wait(pollingMS)
     entry = input
     input = ''
 }
