@@ -84,7 +84,7 @@ export const LGradient = {
 
 //  █ ▓ ▒ ░ 
 export const RGradient = {
-    VT:'\x1B(0\x1B[1;7m \x1B[21m \x1B[ma\x1B[2ma\x1B[m\x1B(B',
+    VT:'\x1B(0\x1B[1;7m \x1B[22m \x1B[ma\x1B[2ma\x1B[m\x1B(B',
     PC:'\xDB\xB2\xB1\xB0',
     XT:'\u2588\u2593\u2592\u2591',
     dumb: ' :: '
