@@ -67,7 +67,7 @@ var xvt;
     };
     //  █ ▓ ▒ ░ 
     xvt.RGradient = {
-        VT: '\x1B(0\x1B[1;7m \x1B[21m \x1B[ma\x1B[2ma\x1B[m\x1B(B',
+        VT: '\x1B(0\x1B[1;7m \x1B[22m \x1B[ma\x1B[2ma\x1B[m\x1B(B',
         PC: '\xDB\xB2\xB1\xB0',
         XT: '\u2588\u2593\u2592\u2591',
         dumb: ' :: '
@@ -206,8 +206,8 @@ var xvt;
     xvt.app = new session();
     function read() {
         return __awaiter(this, void 0, void 0, function* () {
-            let retry = xvt.idleTimeout * (1000 / xvt.pollingMS);
-            let warn = retry / 2;
+            let retry = xvt.idleTimeout * (1000 / xvt.pollingMS) >> 0;
+            let warn = retry >> 1;
             xvt.entry = '';
             xvt.terminator = null;
             while (xvt.carrier && --retry && xvt.validator.isEmpty(xvt.terminator)) {
@@ -403,18 +403,18 @@ var xvt;
         if (xvt.ondrop)
             xvt.ondrop();
         xvt.ondrop = null;
-        //  2-seconds of retro-fun  :)
+        //  1.5-seconds of retro-fun  :)
         if (xvt.modem) {
             out(xvt.reset, '+++');
             waste(500);
             out('\nOK\n');
-            waste(250);
-            out('ATH\n');
-            waste(500);
+            waste(400);
+            out('ATH\x0D');
+            waste(300);
             beep();
-            waste(250);
-            out('NO CARRIER\n');
-            waste(500);
+            waste(200);
+            out('\nNO CARRIER\n');
+            waste(100);
         }
         process.exit();
     }
@@ -447,8 +447,8 @@ var xvt;
             xvt.echo = false;
             xvt.eol = true;
             out(ENQ);
-            for (let retry = 5; retry && !input.length; retry--)
-                yield this.wait(100);
+            for (let retry = 10; retry && !input.length; retry--)
+                yield this.wait(xvt.pollingMS);
             xvt.entry = input;
             input = '';
         });

@@ -248,8 +248,8 @@ export let defaultPromptStyle: any = [ cyan ]
 export let app = new session()
 
 export async function read() {
-    let retry = idleTimeout * (1000 / pollingMS)
-    let warn = retry / 2
+    let retry = idleTimeout * (1000 / pollingMS) >>0
+    let warn = retry >>1
     entry = ''
     terminator = null
 
@@ -459,13 +459,13 @@ export function hangup() {
     if (ondrop) ondrop()
     ondrop = null
 
-    //  2-seconds of retro-fun  :)
+    //  1.5-seconds of retro-fun  :)
     if (modem) {
         out(reset, '+++');      waste(500)
-        out('\nOK\n');          waste(250)
-        out('ATH\n');           waste(500)
-        beep();                 waste(250)
-        out('NO CARRIER\n');    waste(500)
+        out('\nOK\n');          waste(400)
+        out('ATH\x0D');         waste(300)
+        beep();                 waste(200)
+        out('\nNO CARRIER\n');  waste(100)
     }
 
     process.exit()
