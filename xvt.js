@@ -478,17 +478,18 @@ var xvt;
     });
     //  capture VT user input
     process.stdin.on('data', function (key) {
-        let k = key.toString(xvt.emulation == 'XT' ? 'utf8' : 'ascii', 0, 1);
+        let k = key.toString(xvt.emulation == 'XT' ? 'utf8' : 'ascii');
+        let k0 = k[0];
         //  ctrl-d or ctrl-z to disconnect the session
-        if (k == '\x04' || k == '\x1A') {
+        if (k0 == '\x04' || k0 == '\x1A') {
             out(' ** disconnect ** \n');
-            xvt.reason = 'had something better to do';
+            xvt.reason = 'manual disconnect';
             hangup();
         }
         if (xvt.validator.isEmpty(xvt.app.focus) && !xvt.echo)
             return;
         //  rubout
-        if (k == '\x08' || k == '\x7F') {
+        if (k0 == '\x08' || k0 == '\x7F') {
             if (xvt.eol && input.length > 0) {
                 input = input.substr(0, input.length - 1);
                 rubout();
@@ -500,13 +501,13 @@ var xvt;
             }
         }
         //  ctrl-u or ctrl-x cancel typeahead
-        if (k == '\x15' || k == '\x18') {
+        if (k0 == '\x15' || k0 == '\x18') {
             rubout(input.length);
             input = '';
             return;
         }
         //  any text entry mode requires <CR> as the input line terminator
-        if (k == '\x0D') {
+        if (k0 == '\x0D') {
             if (!input.length && xvt.enter.length > 0) {
                 input = xvt.enter;
                 if (xvt.echo)
@@ -519,11 +520,11 @@ var xvt;
                 return;
             }
             xvt.entry = input;
-            xvt.terminator = k;
+            xvt.terminator = k0;
             return;
         }
         //  eat other control keys
-        if (k < ' ') {
+        if (k0 < ' ') {
             if (xvt.eol) {
                 if (xvt.cancel.length) {
                     rubout(input.length);
@@ -536,10 +537,9 @@ var xvt;
                 return;
             }
             //  let's cook for a special key event, if not prompting for a line of text
-            if (k === '\x1B') {
+            if (k0 === '\x1B') {
                 rubout(input.length);
-                k = key.toString(xvt.emulation == 'XT' ? 'utf8' : 'ascii', 1, key.length);
-                switch (k) {
+                switch (k.substr(1)) {
                     case '[A':
                         k = '[UP]';
                         break;
@@ -622,12 +622,12 @@ var xvt;
             return;
         }
         if (xvt.echo)
-            out(k);
-        input += k;
+            out(k0);
+        input += k0;
         //  terminate entry if input size is met
         if (!xvt.eol && input.length >= xvt.entryMax) {
             xvt.entry = input;
-            xvt.terminator = k;
+            xvt.terminator = k0;
         }
     });
 })(xvt || (xvt = {}));

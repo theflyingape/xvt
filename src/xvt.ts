@@ -533,19 +533,20 @@ process.on('SIGINT', function () {
 
 //  capture VT user input
 process.stdin.on('data', function(key: Buffer) {
-    let k: string = key.toString(emulation == 'XT' ? 'utf8' : 'ascii', 0, 1)
+    let k: string = key.toString(emulation == 'XT' ? 'utf8' : 'ascii')
+    let k0 = k[0]
 
     //  ctrl-d or ctrl-z to disconnect the session
-    if (k == '\x04' || k == '\x1A') {
+    if (k0 == '\x04' || k0 == '\x1A') {
         out(' ** disconnect ** \n')
-        reason = 'had something better to do'
+        reason = 'manual disconnect'
         hangup()
     }
 
     if (validator.isEmpty(app.focus) && !echo) return
 
     //  rubout
-    if (k == '\x08' || k == '\x7F') {
+    if (k0 == '\x08' || k0 == '\x7F') {
         if (eol && input.length > 0) {
             input = input.substr(0, input.length - 1)
             rubout()
@@ -558,14 +559,14 @@ process.stdin.on('data', function(key: Buffer) {
     }
 
     //  ctrl-u or ctrl-x cancel typeahead
-    if (k == '\x15' || k == '\x18') {
+    if (k0 == '\x15' || k0 == '\x18') {
         rubout(input.length)
         input = ''
         return
     }
 
     //  any text entry mode requires <CR> as the input line terminator
-    if (k == '\x0D') {
+    if (k0 == '\x0D') {
         if (!input.length && enter.length > 0) {
             input = enter
             if(echo) out(input)
@@ -576,12 +577,12 @@ process.stdin.on('data', function(key: Buffer) {
             return
         }
         entry = input
-        terminator = k
+        terminator = k0
         return
     }
 
     //  eat other control keys
-    if (k < ' ') {
+    if (k0 < ' ') {
         if (eol) {
             if (cancel.length) {
                 rubout(input.length)
@@ -594,10 +595,9 @@ process.stdin.on('data', function(key: Buffer) {
             return
         }
         //  let's cook for a special key event, if not prompting for a line of text
-        if(k === '\x1B') {
+        if (k0 === '\x1B') {
             rubout(input.length)
-            k = key.toString(emulation == 'XT' ? 'utf8' : 'ascii', 1, key.length)
-            switch(k) {
+            switch (k.substr(1)) {
                 case '[A':
                     k = '[UP]'
                     break
@@ -672,7 +672,7 @@ process.stdin.on('data', function(key: Buffer) {
         }
         entry = input
         terminator = k
-        return
+	return
     }
 
     //  don't exceed maximum input allowed
@@ -681,13 +681,13 @@ process.stdin.on('data', function(key: Buffer) {
         return
     }
 
-    if (echo) out(k)
-    input += k
+    if (echo) out(k0)
+    input += k0
 
     //  terminate entry if input size is met
     if (!eol && input.length >= entryMax) {
         entry = input
-        terminator = k
+        terminator = k0
     }
 })
 
