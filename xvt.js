@@ -616,6 +616,8 @@ var xvt;
             xvt.terminator = k;
             return;
         }
+        else
+            k0 = k;
         //  don't exceed maximum input allowed
         if (xvt.entryMax > 0 && input.length >= xvt.entryMax) {
             beep();
