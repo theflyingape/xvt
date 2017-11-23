@@ -672,8 +672,10 @@ process.stdin.on('data', function(key: Buffer) {
         }
         entry = input
         terminator = k
-	return
+	    return
     }
+    else
+        k0 = k
 
     //  don't exceed maximum input allowed
     if (entryMax > 0 && input.length >= entryMax) {
