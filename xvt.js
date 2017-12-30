@@ -31,10 +31,10 @@ var xvt;
     xvt.cll = -2;
     xvt.clear = -1;
     xvt.reset = 0; // all attributes off, default color
-    xvt.bright = 1;
-    xvt.faint = 2;
+    xvt.bright = 1; // make brighter
+    xvt.faint = 2; // make dimmer
     xvt.uline = 4;
-    xvt.blink = 5;
+    xvt.blink = 5; //  not widely supported, unfortunately
     xvt.reverse = 7;
     xvt.off = 20; //  turn any attribute on -> off, except color
     xvt.nobright = 21; //  not widely supported: cancels bold only
@@ -42,7 +42,7 @@ var xvt;
     xvt.nouline = 24;
     xvt.noblink = 25;
     xvt.noreverse = 27;
-    xvt.black = 30;
+    xvt.black = 30; //  foreground colors
     xvt.red = 31;
     xvt.green = 32;
     xvt.yellow = 33;
@@ -50,7 +50,7 @@ var xvt;
     xvt.magenta = 35;
     xvt.cyan = 36;
     xvt.white = 37;
-    xvt.Black = 40;
+    xvt.Black = 40; //  background colors
     xvt.Red = 41;
     xvt.Green = 42;
     xvt.Yellow = 43;
@@ -88,9 +88,12 @@ var xvt;
     };
     class session {
         constructor() {
-            const tty = require('tty');
-            if (tty.isatty(0))
-                tty.ReadStream(0).setRawMode(true);
+            /*      const tty = require('tty')
+                    if (tty.isatty(0))
+                        tty.ReadStream(0).setRawMode(true)
+            */
+            if (process.stdin.isTTY)
+                process.stdin.setRawMode(true);
             xvt.carrier = true;
             xvt.sessionStart = new Date();
         }
@@ -104,7 +107,7 @@ var xvt;
         set focus(name) {
             let p = this._fields[name];
             if (!xvt.validator.isDefined(p)) {
-                out('\n?xvt form error, field undefined: "', name, '"\n');
+                out('\n?xvt form error :: field "', name, '" undefined\n');
                 this.refocus();
                 return;
             }
@@ -134,7 +137,7 @@ var xvt;
                     plot(row, col); //  formatted screen
                 else
                     out('\n'); //  roll-and-scroll
-                if (xvt.validator.isBoolean(p.pause)) {
+                if (p.pause) {
                     xvt.echo = false;
                     xvt.eol = false;
                     if (!xvt.validator.isDefined(p.prompt))
@@ -266,10 +269,12 @@ var xvt;
         while (new Date().getTime() <= start) { }
     }
     xvt.waste = waste;
+    //  ANSI using VT (DEC), PC (IBM), or XT (UTF-8) encoding, else dumb ASCII
+    xvt.emulation = 'XT';
     function attr(...out) {
         out.forEach(data => {
             if (typeof data == 'number') {
-                if (xvt.emulation != 'dumb') {
+                if (xvt.emulation !== 'dumb') {
                     switch (data) {
                         case xvt.cll:
                             text('\x1B[K');
@@ -426,7 +431,7 @@ var xvt;
     let _SGR = ''; //  Select Graphic Rendition
     let _text = ''; //  buffer constructed emulation output(s)
     function SGR(attr) {
-        if (xvt.emulation != 'dumb') {
+        if (xvt.emulation !== 'dumb') {
             if (_SGR == '')
                 _SGR = '\x1B[';
             else
@@ -478,8 +483,15 @@ var xvt;
     });
     //  capture VT user input
     process.stdin.on('data', function (key) {
-        let k = key.toString(xvt.emulation == 'XT' ? 'utf8' : 'ascii');
-        let k0 = k[0];
+        let k;
+        let k0;
+        try {
+            k = key.toString(xvt.emulation == 'XT' ? 'utf8' : 'ascii');
+            k0 = k[0];
+        }
+        catch (err) {
+            return;
+        }
         //  ctrl-d or ctrl-z to disconnect the session
         if (k0 == '\x04' || k0 == '\x1A') {
             out(' ** disconnect ** \n');
@@ -618,8 +630,11 @@ var xvt;
         }
         else
             k0 = k;
+        if (k0.length > 1)
+            process.stdin.unshift(k0.substr(1));
+        k0 = k0.substr(0, 1);
         //  don't exceed maximum input allowed
-        if (xvt.entryMax > 0 && input.length >= xvt.entryMax) {
+        if (xvt.entryMax > 0 && input.length + k0.length > xvt.entryMax) {
             beep();
             return;
         }

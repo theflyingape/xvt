@@ -46,10 +46,10 @@ export const validator = new Validator()
 export const cll        = -2
 export const clear      = -1
 export const reset      =  0    // all attributes off, default color
-export const bright     =  1
-export const faint      =  2
+export const bright     =  1    // make brighter
+export const faint      =  2    // make dimmer
 export const uline      =  4
-export const blink      =  5
+export const blink      =  5    //  not widely supported, unfortunately
 export const reverse    =  7
 export const off        = 20    //  turn any attribute on -> off, except color
 export const nobright   = 21    //  not widely supported: cancels bold only
@@ -57,7 +57,7 @@ export const normal     = 22    //  cancels bold (really?) and faint
 export const nouline    = 24
 export const noblink    = 25
 export const noreverse  = 27
-export const black      = 30
+export const black      = 30    //  foreground colors
 export const red        = 31
 export const green      = 32
 export const yellow     = 33
@@ -65,7 +65,7 @@ export const blue       = 34
 export const magenta    = 35
 export const cyan       = 36
 export const white      = 37
-export const Black      = 40
+export const Black      = 40    //  background colors
 export const Red        = 41
 export const Green      = 42
 export const Yellow     = 43
@@ -109,9 +109,12 @@ export const Empty = {
 export class session {
 
     constructor () {
-        const tty = require('tty')
+/*      const tty = require('tty')
         if (tty.isatty(0))
             tty.ReadStream(0).setRawMode(true)
+*/
+        if (process.stdin.isTTY)
+            process.stdin.setRawMode(true)
         carrier = true
         sessionStart = new Date()
     }
@@ -132,7 +135,7 @@ export class session {
     set focus(name: string|number) {
         let p = this._fields[name]
         if (!validator.isDefined(p)) {
-            out('\n?xvt form error, field undefined: "', name,'"\n')
+            out('\n?xvt form error :: field "', name,'" undefined\n')
             this.refocus()
             return
         }
@@ -167,7 +170,7 @@ export class session {
         else
             out('\n')       //  roll-and-scroll
 
-        if (validator.isBoolean(p.pause)) {
+        if (p.pause) {
             echo = false
             eol = false
             if (!validator.isDefined(p.prompt)) p.prompt = '-pause-'
@@ -318,12 +321,12 @@ export let flash: boolean
 export let rvs: boolean
 
 //  ANSI using VT (DEC), PC (IBM), or XT (UTF-8) encoding, else dumb ASCII
-export let emulation: string
+export let emulation: string = 'XT'
 
 export function attr(...out): string {
     out.forEach(data => {
         if (typeof data == 'number') {
-            if (emulation != 'dumb') {
+            if (emulation !== 'dumb') {
                 switch (data) {
                 case cll:
                     text('\x1B[K')
@@ -479,7 +482,7 @@ let _SGR: string = ''   //  Select Graphic Rendition
 let _text: string = ''  //  buffer constructed emulation output(s)
 
 function SGR(attr) {
-    if (emulation != 'dumb') {
+    if (emulation !== 'dumb') {
         if (_SGR == '')
             _SGR = '\x1B['
         else
@@ -533,8 +536,15 @@ process.on('SIGINT', function () {
 
 //  capture VT user input
 process.stdin.on('data', function(key: Buffer) {
-    let k: string = key.toString(emulation == 'XT' ? 'utf8' : 'ascii')
-    let k0 = k[0]
+    let k: string
+    let k0: string
+    try {
+        k = key.toString(emulation == 'XT' ? 'utf8' : 'ascii')
+        k0 = k[0]
+    }
+    catch (err) {
+        return
+    }
 
     //  ctrl-d or ctrl-z to disconnect the session
     if (k0 == '\x04' || k0 == '\x1A') {
@@ -677,8 +687,12 @@ process.stdin.on('data', function(key: Buffer) {
     else
         k0 = k
 
+    if (k0.length > 1)
+        process.stdin.unshift(k0.substr(1))
+    k0 = k0.substr(0, 1)
+
     //  don't exceed maximum input allowed
-    if (entryMax > 0 && input.length >= entryMax) {
+    if (entryMax > 0 && input.length + k0.length > entryMax) {
         beep()
         return
     }
