@@ -24,6 +24,7 @@ declare module xvt {
         timeout?: number;
         inputStyle?: any[];
         promptStyle?: any[];
+        enq?: boolean;
     }
     interface iField {
         [key: string]: Field;
@@ -103,6 +104,7 @@ declare module xvt {
     let sessionAllowed: number;
     let sessionStart: Date;
     let terminator: string;
+    let typeahead: string;
     let entry: string;
     let enter: string;
     let cancel: string;
@@ -113,6 +115,7 @@ declare module xvt {
     let eraser: string;
     let defaultInputStyle: any;
     let defaultPromptStyle: any;
+    let enq: boolean;
     let app: session;
     function read(): Promise<void>;
     function wait(ms: number): Promise<{}>;
@@ -128,7 +131,6 @@ declare module xvt {
     function beep(): void;
     function hangup(): void;
     function out(...out: any[]): void;
-    function enquiry(ENQ: string): Promise<void>;
     function plot(row: number, col: number): void;
     function rubout(n?: number): void;
 }

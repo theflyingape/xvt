@@ -15,12 +15,18 @@ function password() {
 }
 
 xvt.modem = true
+xvt.pollingMS = 200
 xvt.sessionAllowed = 60
+
 xvt.app.form = {
+	'enq': { cb:() => { 
+		console.log('ENQ response =', xvt.entry.split('').map((c) => { return c.charCodeAt(0) }))
+		xvt.app.focus = 'pause'
+	}, prompt:'\x1B[6n', enq:true },
 	'pause': { cb:() => { xvt.app.focus = 'username'}, pause:true },
 	'username': { cb:login, prompt:'Username: ', min:3, max:10 },
 	'password': { cb:password, echo:false, min:4, timeout:15 }
 }
-xvt.app.focus = 'pause'
+process.nextTick(() => { xvt.app.focus = 'enq' })
 
 }

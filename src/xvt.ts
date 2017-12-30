@@ -14,9 +14,9 @@ export interface Field {
 	cb: Function
 	row?: number
 	col?: number
-	prompt?: string
+    prompt?: string
     cancel?: string
-	enter?: string
+    enter?: string
 	echo?: boolean
 	eol?: boolean
     eraser?: string
@@ -27,6 +27,7 @@ export interface Field {
     timeout?: number
     inputStyle?: any[]
     promptStyle?: any[]
+    enq?: boolean
 }
 
 export interface iField {
@@ -162,6 +163,16 @@ export class session {
         cancel = validator.isDefined(p.cancel) ? p.cancel : ''
         enter = validator.isDefined(p.enter) ? p.enter : ''
 
+        if (p.enq) {
+            enq = true
+            out(p.prompt)
+            idleTimeout = 1
+            await read()
+            enq = false
+            p.cb()
+            return
+        }
+
         out(reset)
         let row = validator.isDefined(p.row) ? p.row : 0
         let col = validator.isDefined(p.col) ? p.col : 0
@@ -236,6 +247,7 @@ export let pollingMS: number = 100
 export let sessionAllowed: number = 0
 export let sessionStart: Date = null
 export let terminator: string = null
+export let typeahead: string = ''
 
 export let entry: string = ''
 export let enter: string = ''
@@ -247,6 +259,7 @@ export let entryMax: number = 0
 export let eraser: string = ' '
 export let defaultInputStyle: any = [ bright, white ]
 export let defaultPromptStyle: any = [ cyan ]
+export let enq: boolean = false
 
 export let app = new session()
 
@@ -256,6 +269,9 @@ export async function read() {
     entry = ''
     terminator = null
 
+    if (typeahead)
+        process.stdin.emit('data', '')
+    process.stdin.resume()
     while (carrier && --retry && validator.isEmpty(terminator)) {
         await wait(pollingMS)
         if (idleTimeout > 0 && retry == warn) beep()
@@ -498,16 +514,6 @@ function text(s) {
         }
        _text += s
 }
-export async function enquiry(ENQ: string) {
-    input = ''
-    echo = false
-    eol = true
-    out(ENQ)
-    for (let retry = 10; retry && !input.length; retry--)
-        await this.wait(pollingMS)
-    entry = input
-    input = ''
-}
 
 export function plot(row: number, col: number) {
     out('\x1B[', row.toString(), ';', col.toString(), 'H')
@@ -539,10 +545,20 @@ process.stdin.on('data', function(key: Buffer) {
     let k: string
     let k0: string
     try {
-        k = key.toString(emulation == 'XT' ? 'utf8' : 'ascii')
-        k0 = k[0]
+        k = typeahead + key.toString(emulation == 'XT' ? 'utf8' : 'ascii')
+        k0 = k.substr(0, 1)
+        typeahead = ''
     }
     catch (err) {
+        console.log(k, k.split('').map((c) => { return c.charCodeAt(0) }))
+        return
+    }
+
+    // special ENQUIRY result
+    if (enq) {
+        entry = k
+        terminator = k0
+        process.stdin.pause()
         return
     }
 
@@ -553,7 +569,7 @@ process.stdin.on('data', function(key: Buffer) {
         hangup()
     }
 
-    if (validator.isEmpty(app.focus) && !echo) return
+    //if (validator.isEmpty(app.focus) && !echo) return
 
     //  rubout
     if (k0 == '\x08' || k0 == '\x7F') {
@@ -572,6 +588,7 @@ process.stdin.on('data', function(key: Buffer) {
     if (k0 == '\x15' || k0 == '\x18') {
         rubout(input.length)
         input = ''
+        typeahead = ''
         return
     }
 
@@ -579,15 +596,18 @@ process.stdin.on('data', function(key: Buffer) {
     if (k0 == '\x0D') {
         if (!input.length && enter.length > 0) {
             input = enter
-            if(echo) out(input)
+            if (echo) out(input)
         }
         else if (input.length < entryMin) {
-            if (! echo) input = ''
+            if (!echo) input = ''
             beep()
             return
         }
         entry = input
         terminator = k0
+        process.stdin.pause()
+        if (k.length > 1)
+            typeahead = k.substr(1)
         return
     }
 
@@ -602,6 +622,7 @@ process.stdin.on('data', function(key: Buffer) {
             else
                 entry = input
             terminator = k
+            process.stdin.pause()
             return
         }
         //  let's cook for a special key event, if not prompting for a line of text
@@ -677,23 +698,21 @@ process.stdin.on('data', function(key: Buffer) {
                     break
             }
         }
-        else {
+        else
             k = '^' + String.fromCharCode(64 + k.charCodeAt(0))
-        }
         entry = input
         terminator = k
+        process.stdin.pause()
 	    return
     }
-    else
-        k0 = k
 
-    if (k0.length > 1)
-        process.stdin.unshift(k0.substr(1))
-    k0 = k0.substr(0, 1)
+    if (k.length > 1)
+        typeahead = k.substr(1)
 
     //  don't exceed maximum input allowed
-    if (entryMax > 0 && input.length + k0.length > entryMax) {
+    if (eol && entryMax > 0 && input.length >= entryMax) {
         beep()
+        typeahead = ''
         return
     }
 
@@ -704,6 +723,7 @@ process.stdin.on('data', function(key: Buffer) {
     if (!eol && input.length >= entryMax) {
         entry = input
         terminator = k0
+        process.stdin.pause()
     }
 })
 

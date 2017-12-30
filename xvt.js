@@ -130,6 +130,15 @@ var xvt;
                 let p = this._fields[this.focus];
                 xvt.cancel = xvt.validator.isDefined(p.cancel) ? p.cancel : '';
                 xvt.enter = xvt.validator.isDefined(p.enter) ? p.enter : '';
+                if (p.enq) {
+                    xvt.enq = true;
+                    out(p.prompt);
+                    xvt.idleTimeout = 1;
+                    yield read();
+                    xvt.enq = false;
+                    p.cb();
+                    return;
+                }
                 out(xvt.reset);
                 let row = xvt.validator.isDefined(p.row) ? p.row : 0;
                 let col = xvt.validator.isDefined(p.col) ? p.col : 0;
@@ -196,6 +205,7 @@ var xvt;
     xvt.sessionAllowed = 0;
     xvt.sessionStart = null;
     xvt.terminator = null;
+    xvt.typeahead = '';
     xvt.entry = '';
     xvt.enter = '';
     xvt.cancel = '';
@@ -206,6 +216,7 @@ var xvt;
     xvt.eraser = ' ';
     xvt.defaultInputStyle = [xvt.bright, xvt.white];
     xvt.defaultPromptStyle = [xvt.cyan];
+    xvt.enq = false;
     xvt.app = new session();
     function read() {
         return __awaiter(this, void 0, void 0, function* () {
@@ -213,6 +224,9 @@ var xvt;
             let warn = retry >> 1;
             xvt.entry = '';
             xvt.terminator = null;
+            if (xvt.typeahead)
+                process.stdin.emit('data', '');
+            process.stdin.resume();
             while (xvt.carrier && --retry && xvt.validator.isEmpty(xvt.terminator)) {
                 yield wait(xvt.pollingMS);
                 if (xvt.idleTimeout > 0 && retry == warn)
@@ -446,19 +460,6 @@ var xvt;
         }
         _text += s;
     }
-    function enquiry(ENQ) {
-        return __awaiter(this, void 0, void 0, function* () {
-            input = '';
-            xvt.echo = false;
-            xvt.eol = true;
-            out(ENQ);
-            for (let retry = 10; retry && !input.length; retry--)
-                yield this.wait(xvt.pollingMS);
-            xvt.entry = input;
-            input = '';
-        });
-    }
-    xvt.enquiry = enquiry;
     function plot(row, col) {
         out('\x1B[', row.toString(), ';', col.toString(), 'H');
     }
@@ -486,10 +487,19 @@ var xvt;
         let k;
         let k0;
         try {
-            k = key.toString(xvt.emulation == 'XT' ? 'utf8' : 'ascii');
-            k0 = k[0];
+            k = xvt.typeahead + key.toString(xvt.emulation == 'XT' ? 'utf8' : 'ascii');
+            k0 = k.substr(0, 1);
+            xvt.typeahead = '';
         }
         catch (err) {
+            console.log(k, k.split('').map((c) => { return c.charCodeAt(0); }));
+            return;
+        }
+        // special ENQUIRY result
+        if (xvt.enq) {
+            xvt.entry = k;
+            xvt.terminator = k0;
+            process.stdin.pause();
             return;
         }
         //  ctrl-d or ctrl-z to disconnect the session
@@ -498,8 +508,7 @@ var xvt;
             xvt.reason = 'manual disconnect';
             hangup();
         }
-        if (xvt.validator.isEmpty(xvt.app.focus) && !xvt.echo)
-            return;
+        //if (validator.isEmpty(app.focus) && !echo) return
         //  rubout
         if (k0 == '\x08' || k0 == '\x7F') {
             if (xvt.eol && input.length > 0) {
@@ -516,6 +525,7 @@ var xvt;
         if (k0 == '\x15' || k0 == '\x18') {
             rubout(input.length);
             input = '';
+            xvt.typeahead = '';
             return;
         }
         //  any text entry mode requires <CR> as the input line terminator
@@ -533,6 +543,9 @@ var xvt;
             }
             xvt.entry = input;
             xvt.terminator = k0;
+            process.stdin.pause();
+            if (k.length > 1)
+                xvt.typeahead = k.substr(1);
             return;
         }
         //  eat other control keys
@@ -546,6 +559,7 @@ var xvt;
                 else
                     xvt.entry = input;
                 xvt.terminator = k;
+                process.stdin.pause();
                 return;
             }
             //  let's cook for a special key event, if not prompting for a line of text
@@ -621,21 +635,19 @@ var xvt;
                         break;
                 }
             }
-            else {
+            else
                 k = '^' + String.fromCharCode(64 + k.charCodeAt(0));
-            }
             xvt.entry = input;
             xvt.terminator = k;
+            process.stdin.pause();
             return;
         }
-        else
-            k0 = k;
-        if (k0.length > 1)
-            process.stdin.unshift(k0.substr(1));
-        k0 = k0.substr(0, 1);
+        if (k.length > 1)
+            xvt.typeahead = k.substr(1);
         //  don't exceed maximum input allowed
-        if (xvt.entryMax > 0 && input.length + k0.length > xvt.entryMax) {
+        if (xvt.eol && xvt.entryMax > 0 && input.length >= xvt.entryMax) {
             beep();
+            xvt.typeahead = '';
             return;
         }
         if (xvt.echo)
@@ -645,6 +657,7 @@ var xvt;
         if (!xvt.eol && input.length >= xvt.entryMax) {
             xvt.entry = input;
             xvt.terminator = k0;
+            process.stdin.pause();
         }
     });
 })(xvt || (xvt = {}));
