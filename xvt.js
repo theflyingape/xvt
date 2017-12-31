@@ -224,12 +224,13 @@ var xvt;
             let warn = retry >> 1;
             xvt.entry = '';
             xvt.terminator = null;
-            if (xvt.typeahead)
-                process.stdin.emit('data', '');
             process.stdin.resume();
-            while (xvt.carrier && --retry && xvt.validator.isEmpty(xvt.terminator)) {
-                yield wait(xvt.pollingMS);
-                if (xvt.idleTimeout > 0 && retry == warn)
+            while (xvt.carrier && retry && xvt.validator.isEmpty(xvt.terminator)) {
+                if (xvt.typeahead)
+                    process.stdin.emit('data', '');
+                else
+                    yield wait(xvt.pollingMS);
+                if (xvt.idleTimeout > 0 && --retry == warn)
                     beep();
                 if (xvt.sessionAllowed > 0 && !(retry % xvt.pollingMS)) {
                     let elapsed = (new Date().getTime() - xvt.sessionStart.getTime()) / 1000;

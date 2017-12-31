@@ -15,7 +15,7 @@ function password() {
 }
 
 xvt.modem = true
-xvt.pollingMS = 200
+//xvt.pollingMS = 20
 xvt.sessionAllowed = 60
 
 xvt.app.form = {

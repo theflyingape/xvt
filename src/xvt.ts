@@ -269,12 +269,11 @@ export async function read() {
     entry = ''
     terminator = null
 
-    if (typeahead)
-        process.stdin.emit('data', '')
     process.stdin.resume()
-    while (carrier && --retry && validator.isEmpty(terminator)) {
-        await wait(pollingMS)
-        if (idleTimeout > 0 && retry == warn) beep()
+    while (carrier && retry && validator.isEmpty(terminator)) {
+        if (typeahead) process.stdin.emit('data', '')
+        else await wait(pollingMS)
+        if (idleTimeout > 0 && --retry == warn) beep()
         if (sessionAllowed > 0 && !(retry % pollingMS)) {
             let elapsed = (new Date().getTime() - sessionStart.getTime()) / 1000
             if (elapsed > sessionAllowed) carrier = false
