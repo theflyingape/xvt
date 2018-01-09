@@ -473,12 +473,11 @@ export function beep() {
 }
 
 export function hangup() {
-    carrier = false
     if (ondrop) ondrop()
     ondrop = null
 
     //  1.5-seconds of retro-fun  :)
-    if (modem) {
+    if (carrier && modem) {
         out(reset, '+++');      waste(500)
         out('\nOK\n');          waste(400)
         out('ATH\x0D');         waste(300)
@@ -486,11 +485,13 @@ export function hangup() {
         out('\nNO CARRIER\n');  waste(100)
     }
 
+    carrier = false
     process.exit()
 }
 
 export function out(...out) {
-    process.stdout.write(attr(...out), emulation == 'XT' ? 'utf8' : 'ascii')
+    if (carrier)
+        process.stdout.write(attr(...out), emulation == 'XT' ? 'utf8' : 'ascii')
 }
 
 let _SGR: string = ''   //  Select Graphic Rendition

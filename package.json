@@ -1,6 +1,6 @@
 {
   "name": "xvt",
-  "version": "1.0.19",
+  "version": "1.0.20",
   "description": "an event-driven terminal session handler",
   "main": "./xvt.js",
   "types": "./xvt.d.ts",
