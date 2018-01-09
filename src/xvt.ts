@@ -323,8 +323,10 @@ export function wait(ms: number) {
 }
 
 export function waste(ms: number) {
-    let start = new Date().getTime() + (ms)
-    while (new Date().getTime() <= start) {}
+    if (carrier) {
+        let start = new Date().getTime() + (ms)
+        while (new Date().getTime() <= start) {}
+    }
 }
 
 //  SGR registers

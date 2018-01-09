@@ -419,12 +419,11 @@ var xvt;
     }
     xvt.beep = beep;
     function hangup() {
-        xvt.carrier = false;
         if (xvt.ondrop)
             xvt.ondrop();
         xvt.ondrop = null;
         //  1.5-seconds of retro-fun  :)
-        if (xvt.modem) {
+        if (xvt.carrier && xvt.modem) {
             out(xvt.reset, '+++');
             waste(500);
             out('\nOK\n');
@@ -436,11 +435,13 @@ var xvt;
             out('\nNO CARRIER\n');
             waste(100);
         }
+        xvt.carrier = false;
         process.exit();
     }
     xvt.hangup = hangup;
     function out(...out) {
-        process.stdout.write(attr(...out), xvt.emulation == 'XT' ? 'utf8' : 'ascii');
+        if (xvt.carrier)
+            process.stdout.write(attr(...out), xvt.emulation == 'XT' ? 'utf8' : 'ascii');
     }
     xvt.out = out;
     let _SGR = ''; //  Select Graphic Rendition
