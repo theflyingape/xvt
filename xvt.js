@@ -280,8 +280,10 @@ var xvt;
     }
     xvt.wait = wait;
     function waste(ms) {
-        let start = new Date().getTime() + (ms);
-        while (new Date().getTime() <= start) { }
+        if (xvt.carrier) {
+            let start = new Date().getTime() + (ms);
+            while (new Date().getTime() <= start) { }
+        }
     }
     xvt.waste = waste;
     //  ANSI using VT (DEC), PC (IBM), or XT (UTF-8) encoding, else dumb ASCII
@@ -446,6 +448,14 @@ var xvt;
     xvt.out = out;
     let _SGR = ''; //  Select Graphic Rendition
     let _text = ''; //  buffer constructed emulation output(s)
+    function restore() {
+        out(xvt.emulation == 'XT' ? '\x1B[u' : '\x1B8');
+    }
+    xvt.restore = restore;
+    function save() {
+        out(xvt.emulation == 'XT' ? '\x1B[s' : '\x1B7');
+    }
+    xvt.save = save;
     function SGR(attr) {
         if (xvt.emulation !== 'dumb') {
             if (_SGR == '')

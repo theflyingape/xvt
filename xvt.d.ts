@@ -131,6 +131,8 @@ declare module xvt {
     function beep(): void;
     function hangup(): void;
     function out(...out: any[]): void;
+    function restore(): void;
+    function save(): void;
     function plot(row: number, col: number): void;
     function rubout(n?: number): void;
 }

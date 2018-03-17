@@ -499,6 +499,14 @@ export function out(...out) {
 let _SGR: string = ''   //  Select Graphic Rendition
 let _text: string = ''  //  buffer constructed emulation output(s)
 
+export function restore() {
+    out(emulation == 'XT' ? '\x1B[u' : '\x1B8')
+}
+
+export function save() {
+    out(emulation == 'XT' ? '\x1B[s' : '\x1B7')
+}
+
 function SGR(attr) {
     if (emulation !== 'dumb') {
         if (_SGR == '')
