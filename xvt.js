@@ -133,7 +133,7 @@ var xvt;
                 if (p.enq) {
                     xvt.enq = true;
                     out(p.prompt);
-                    xvt.idleTimeout = 1;
+                    xvt.idleTimeout = 5;
                     yield read();
                     xvt.enq = false;
                     p.cb();
@@ -309,7 +309,7 @@ var xvt;
                             xvt.rvs = false;
                             break;
                         case xvt.bright:
-                            if (xvt.dim) {
+                            if (xvt.dim) { //  make bright/dim intensity mutually exclusive
                                 SGR(xvt.normal.toString());
                                 xvt.bold = false;
                                 xvt.dim = false;
@@ -319,7 +319,7 @@ var xvt;
                             xvt.bold = true;
                             break;
                         case xvt.faint:
-                            if (xvt.bold) {
+                            if (xvt.bold) { //  make bright/dim intensity mutually exclusive
                                 SGR(xvt.normal.toString());
                                 xvt.bold = false;
                                 xvt.dim = false;

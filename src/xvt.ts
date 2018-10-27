@@ -166,7 +166,7 @@ export class session {
         if (p.enq) {
             enq = true
             out(p.prompt)
-            idleTimeout = 10
+            idleTimeout = 5
             await read()
             enq = false
             p.cb()

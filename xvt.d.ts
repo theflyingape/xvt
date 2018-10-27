@@ -92,7 +92,7 @@ declare module xvt {
         focus: string | number;
         nofocus(keep?: boolean): void;
         refocus(): void;
-        private _read();
+        private _read;
     }
     let carrier: boolean;
     let modem: boolean;
