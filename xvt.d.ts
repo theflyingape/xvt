@@ -60,6 +60,22 @@ declare module xvt {
     const Magenta = 45;
     const Cyan = 46;
     const White = 47;
+    const lblack = 90;
+    const lred = 91;
+    const lgreen = 92;
+    const lyellow = 93;
+    const lblue = 94;
+    const lmagenta = 95;
+    const lcyan = 96;
+    const lwhite = 97;
+    const lBlack = 100;
+    const lRed = 101;
+    const lGreen = 102;
+    const lYellow = 103;
+    const lBlue = 104;
+    const lMagenta = 105;
+    const lCyan = 106;
+    const lWhite = 107;
     const LGradient: {
         VT: string;
         PC: string;

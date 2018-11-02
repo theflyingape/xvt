@@ -58,6 +58,22 @@ var xvt;
     xvt.Magenta = 45;
     xvt.Cyan = 46;
     xvt.White = 47;
+    xvt.lblack = 90; //  lighter foreground colors
+    xvt.lred = 91;
+    xvt.lgreen = 92;
+    xvt.lyellow = 93;
+    xvt.lblue = 94;
+    xvt.lmagenta = 95;
+    xvt.lcyan = 96;
+    xvt.lwhite = 97;
+    xvt.lBlack = 100; //  lighter background colors
+    xvt.lRed = 101;
+    xvt.lGreen = 102;
+    xvt.lYellow = 103;
+    xvt.lBlue = 104;
+    xvt.lMagenta = 105;
+    xvt.lCyan = 106;
+    xvt.lWhite = 107;
     //  ░ ▒ ▓ █ 
     xvt.LGradient = {
         VT: '\x1B(0\x1B[2ma\x1B[ma\x1B[7m \x1B[1m \x1B[27m\x1B(B',
@@ -389,10 +405,10 @@ var xvt;
                             break;
                         default:
                             xvt.color = data;
-                            if (data >= xvt.black && data <= xvt.white)
+                            if (data >= xvt.black && data <= xvt.white || data >= xvt.lblack && data <= xvt.lwhite)
                                 if (xvt.emulation !== 'VT')
                                     SGR(data.toString());
-                            if (data >= xvt.Black && data <= xvt.White) {
+                            if (data >= xvt.Black && data <= xvt.White || data >= xvt.lBlack && data <= xvt.lWhite) {
                                 if (xvt.emulation !== 'VT')
                                     SGR(data.toString());
                                 else {
