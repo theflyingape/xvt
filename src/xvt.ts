@@ -74,6 +74,22 @@ export const Blue       = 44
 export const Magenta    = 45
 export const Cyan       = 46
 export const White      = 47
+export const lblack     = 90    //  lighter foreground colors
+export const lred       = 91
+export const lgreen     = 92
+export const lyellow    = 93
+export const lblue      = 94
+export const lmagenta   = 95
+export const lcyan      = 96
+export const lwhite     = 97
+export const lBlack     = 100   //  lighter background colors
+export const lRed       = 101
+export const lGreen     = 102
+export const lYellow    = 103
+export const lBlue      = 104
+export const lMagenta   = 105
+export const lCyan      = 106
+export const lWhite     = 107
 
 //  ░ ▒ ▓ █ 
 export const LGradient = {
@@ -441,10 +457,10 @@ export function attr(...out): string {
                     break
                 default:
                     color = data
-                    if (data >= black && data <= white)
+                    if (data >= black && data <= white || data >= lblack && data <= lwhite)
                         if (emulation !== 'VT')
                             SGR(data.toString())
-                    if (data >= Black && data <= White) {
+                    if (data >= Black && data <= White || data >= lBlack && data <= lWhite) {
                         if (emulation !== 'VT')
                             SGR(data.toString())
                         else {
