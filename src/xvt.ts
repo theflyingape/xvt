@@ -6,7 +6,7 @@
  * - user input interface: formatted and roll-and-scroll                     *
 \*****************************************************************************/
 
-import {Validator} from "class-validator"
+import { Validator } from "class-validator"
 
 module xvt {
 
@@ -44,44 +44,44 @@ export interface iForm {
 */
 export const validator = new Validator()
 //  SGR (https://en.wikipedia.org/wiki/ANSI_escape_code#SGR_.28Select_Graphic_Rendition.29_parameters)
-export const cll        = -2
-export const clear      = -1
-export const reset      =  0    // all attributes off, default color
-export const bright     =  1    // make brighter
-export const faint      =  2    // make dimmer
-export const uline      =  4
-export const blink      =  5    //  not widely supported, unfortunately
-export const reverse    =  7
-export const off        = 20    //  turn any attribute on -> off, except color
-export const nobright   = 21    //  not widely supported: cancels bold only
-export const normal     = 22    //  cancels bold (really?) and faint
-export const nouline    = 24
-export const noblink    = 25
-export const noreverse  = 27
-export const black      = 30    //  foreground colors
-export const red        = 31
-export const green      = 32
-export const yellow     = 33
-export const blue       = 34
-export const magenta    = 35
-export const cyan       = 36
-export const white      = 37
-export const Black      = 40    //  background colors
-export const Red        = 41
-export const Green      = 42
-export const Yellow     = 43
-export const Blue       = 44
-export const Magenta    = 45
-export const Cyan       = 46
-export const White      = 47
-export const lblack     = 90    //  lighter foreground colors
-export const lred       = 91
-export const lgreen     = 92
-export const lyellow    = 93
-export const lblue      = 94
-export const lmagenta   = 95
-export const lcyan      = 96
-export const lwhite     = 97
+export const cll        =  -2
+export const clear      =  -1
+export const reset      =   0   // all attributes off, default color
+export const bright     =   1   // make brighter
+export const faint      =   2   // make dimmer
+export const uline      =   4
+export const blink      =   5   //  not widely supported, unfortunately
+export const reverse    =   7
+export const off        =  20   //  turn any attribute on -> off, except color
+export const nobright   =  21   //  not widely supported: cancels bold only
+export const normal     =  22   //  cancels bold (really?) and faint
+export const nouline    =  24
+export const noblink    =  25
+export const noreverse  =  27
+export const black      =  30   //  foreground colors
+export const red        =  31
+export const green      =  32
+export const yellow     =  33
+export const blue       =  34
+export const magenta    =  35
+export const cyan       =  36
+export const white      =  37
+export const Black      =  40   //  background colors
+export const Red        =  41
+export const Green      =  42
+export const Yellow     =  43
+export const Blue       =  44
+export const Magenta    =  45
+export const Cyan       =  46
+export const White      =  47
+export const lblack     =  90   //  lighter foreground colors
+export const lred       =  91
+export const lgreen     =  92
+export const lyellow    =  93
+export const lblue      =  94
+export const lmagenta   =  95
+export const lcyan      =  96
+export const lwhite     =  97
 export const lBlack     = 100   //  lighter background colors
 export const lRed       = 101
 export const lGreen     = 102
@@ -126,10 +126,9 @@ export const Empty = {
 export class session {
 
     constructor () {
-/*      const tty = require('tty')
+    /*  const tty = require('tty')
         if (tty.isatty(0))
-            tty.ReadStream(0).setRawMode(true)
-*/
+            tty.ReadStream(0).setRawMode(true)  */
         if (process.stdin.isTTY)
             process.stdin.setRawMode(true)
         carrier = true
@@ -487,7 +486,7 @@ export function attr(...out): string {
 }
 
 export function beep() {
-        out('\x07')
+    out('\x07')
 }
 
 export function hangup() {
@@ -508,8 +507,11 @@ export function hangup() {
 }
 
 export function out(...out) {
-    if (carrier)
-        process.stdout.write(attr(...out), emulation == 'XT' ? 'utf8' : 'ascii')
+    if (carrier) process.stdout.write(attr(...out), emulation == 'XT' ? 'utf8' : 'ascii')
+}
+
+export function outln(...out) {
+    if (carrier) process.stdout.write(attr(...out, xvt.reset, '\n'), emulation == 'XT' ? 'utf8' : 'ascii')
 }
 
 let _SGR: string = ''   //  Select Graphic Rendition
