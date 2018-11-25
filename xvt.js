@@ -104,10 +104,9 @@ var xvt;
     };
     class session {
         constructor() {
-            /*      const tty = require('tty')
-                    if (tty.isatty(0))
-                        tty.ReadStream(0).setRawMode(true)
-            */
+            /*  const tty = require('tty')
+                if (tty.isatty(0))
+                    tty.ReadStream(0).setRawMode(true)  */
             if (process.stdin.isTTY)
                 process.stdin.setRawMode(true);
             xvt.carrier = true;
@@ -462,6 +461,11 @@ var xvt;
             process.stdout.write(attr(...out), xvt.emulation == 'XT' ? 'utf8' : 'ascii');
     }
     xvt.out = out;
+    function outln(...out) {
+        if (xvt.carrier)
+            process.stdout.write(attr(...out, xvt.reset, '\n'), xvt.emulation == 'XT' ? 'utf8' : 'ascii');
+    }
+    xvt.outln = outln;
     let _SGR = ''; //  Select Graphic Rendition
     let _text = ''; //  buffer constructed emulation output(s)
     function restore() {
