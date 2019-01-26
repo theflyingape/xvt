@@ -122,7 +122,7 @@ var xvt;
         set focus(name) {
             let p = this._fields[name];
             if (!xvt.validator.isDefined(p)) {
-                out('\n?xvt form error :: field "', name, '" undefined\n');
+                outln('\n?xvt form error :: field "', name, '" undefined');
                 this.refocus();
                 return;
             }
@@ -160,7 +160,7 @@ var xvt;
                 if (row && col)
                     plot(row, col); //  formatted screen
                 else
-                    out('\n'); //  roll-and-scroll
+                    outln(); //  roll-and-scroll
                 if (p.pause) {
                     xvt.echo = false;
                     xvt.eol = false;
@@ -239,19 +239,24 @@ var xvt;
             let warn = retry >> 1;
             xvt.entry = '';
             xvt.terminator = null;
-            process.stdin.resume();
-            while (xvt.carrier && retry && xvt.validator.isEmpty(xvt.terminator)) {
-                if (xvt.typeahead)
-                    process.stdin.emit('data', '');
-                else
-                    yield wait(xvt.pollingMS);
-                if (xvt.idleTimeout > 0 && --retry == warn)
-                    beep();
-                if (xvt.sessionAllowed > 0 && !(retry % xvt.pollingMS)) {
-                    let elapsed = (new Date().getTime() - xvt.sessionStart.getTime()) / 1000;
-                    if (elapsed > xvt.sessionAllowed)
-                        xvt.carrier = false;
+            try {
+                process.stdin.resume();
+                while (xvt.carrier && retry && xvt.validator.isEmpty(xvt.terminator)) {
+                    if (xvt.typeahead)
+                        process.stdin.emit('data', '');
+                    else
+                        yield wait(xvt.pollingMS);
+                    if (xvt.idleTimeout > 0 && --retry == warn)
+                        beep();
+                    if (xvt.sessionAllowed > 0 && !(retry % xvt.pollingMS)) {
+                        let elapsed = (new Date().getTime() - xvt.sessionStart.getTime()) / 1000;
+                        if (elapsed > xvt.sessionAllowed)
+                            xvt.carrier = false;
+                    }
                 }
+            }
+            catch (err) {
+                xvt.carrier = false;
             }
             if (!xvt.carrier || !retry) {
                 //  any remaining cancel operations will take over, else bye-bye
@@ -263,11 +268,11 @@ var xvt;
                 else {
                     beep();
                     if (!xvt.carrier) {
-                        out(' ** your session expired **\n', xvt.reset);
+                        outln(' ** your session expired ** ');
                         xvt.reason = 'got exhausted';
                     }
                     if (!retry) {
-                        out(' ** timeout **\n', xvt.reset);
+                        outln(' ** timeout ** ');
                         xvt.reason = 'fallen asleep';
                     }
                     waste(1000);
@@ -316,7 +321,7 @@ var xvt;
                             break;
                         case xvt.reset:
                             SGR('0');
-                            xvt.color = xvt.white;
+                            xvt.color = 0;
                             xvt.bold = false;
                             xvt.dim = false;
                             xvt.ul = false;
@@ -443,13 +448,13 @@ var xvt;
         if (xvt.carrier && xvt.modem) {
             out(xvt.reset, '+++');
             waste(500);
-            out('\nOK\n');
+            outln('\nOK');
             waste(400);
             out('ATH\x0D');
             waste(300);
             beep();
             waste(200);
-            out('\nNO CARRIER\n');
+            outln('\nNO CARRIER');
             waste(100);
         }
         xvt.carrier = false;
@@ -457,13 +462,23 @@ var xvt;
     }
     xvt.hangup = hangup;
     function out(...out) {
-        if (xvt.carrier)
-            process.stdout.write(attr(...out), xvt.emulation == 'XT' ? 'utf8' : 'ascii');
+        try {
+            if (xvt.carrier)
+                process.stdout.write(attr(...out), xvt.emulation == 'XT' ? 'utf8' : 'ascii');
+        }
+        catch (err) {
+            xvt.carrier = false;
+        }
     }
     xvt.out = out;
     function outln(...out) {
-        if (xvt.carrier)
-            process.stdout.write(attr(...out, xvt.reset, '\n'), xvt.emulation == 'XT' ? 'utf8' : 'ascii');
+        try {
+            if (xvt.carrier)
+                process.stdout.write(attr(...out, xvt.color || xvt.bold || xvt.dim || xvt.ul || xvt.flash || xvt.rvs ? xvt.reset : '', '\n'), xvt.emulation == 'XT' ? 'utf8' : 'ascii');
+        }
+        catch (err) {
+            xvt.carrier = false;
+        }
     }
     xvt.outln = outln;
     let _SGR = ''; //  Select Graphic Rendition
@@ -505,13 +520,15 @@ var xvt;
     //  signal & stdin event handlers
     let input = '';
     process.on('SIGHUP', function () {
-        out(' ** hangup ** \n', xvt.reset);
+        outln(' ** hangup ** ');
         xvt.reason = 'hangup';
+        xvt.carrier = false;
         hangup();
     });
     process.on('SIGINT', function () {
-        out(' ** interrupt ** \n', xvt.reset);
+        outln(' ** interrupt ** ');
         xvt.reason = 'interrupted';
+        xvt.carrier = false;
         hangup();
     });
     //  capture VT user input

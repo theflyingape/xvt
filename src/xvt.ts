@@ -151,7 +151,7 @@ export class session {
     set focus(name: string|number) {
         let p = this._fields[name]
         if (!validator.isDefined(p)) {
-            out('\n?xvt form error :: field "', name,'" undefined\n')
+            outln('\n?xvt form error :: field "', name,'" undefined')
             this.refocus()
             return
         }
@@ -191,10 +191,10 @@ export class session {
         out(reset)
         let row = validator.isDefined(p.row) ? p.row : 0
         let col = validator.isDefined(p.col) ? p.col : 0
-        if(row && col)
+        if (row && col)
             plot(row, col)  //  formatted screen
         else
-            out('\n')       //  roll-and-scroll
+            outln()         //  roll-and-scroll
 
         if (p.pause) {
             echo = false
@@ -284,15 +284,20 @@ export async function read() {
     entry = ''
     terminator = null
 
-    process.stdin.resume()
-    while (carrier && retry && validator.isEmpty(terminator)) {
-        if (typeahead) process.stdin.emit('data', '')
-        else await wait(pollingMS)
-        if (idleTimeout > 0 && --retry == warn) beep()
-        if (sessionAllowed > 0 && !(retry % pollingMS)) {
-            let elapsed = (new Date().getTime() - sessionStart.getTime()) / 1000
-            if (elapsed > sessionAllowed) carrier = false
+    try {
+        process.stdin.resume()
+        while (carrier && retry && validator.isEmpty(terminator)) {
+            if (typeahead) process.stdin.emit('data', '')
+            else await wait(pollingMS)
+            if (idleTimeout > 0 && --retry == warn) beep()
+            if (sessionAllowed > 0 && !(retry % pollingMS)) {
+                let elapsed = (new Date().getTime() - sessionStart.getTime()) / 1000
+                if (elapsed > sessionAllowed) carrier = false
+            }
         }
+    }
+    catch (err) {
+        carrier = false
     }
 
     if (!carrier || !retry) {
@@ -305,11 +310,11 @@ export async function read() {
         else {
             beep()
             if (!carrier) {
-                out(' ** your session expired **\n', reset)
+                outln(' ** your session expired ** ')
                 reason = 'got exhausted'
             }
             if (!retry) {
-                out(' ** timeout **\n', reset)
+                outln(' ** timeout ** ')
                 reason = 'fallen asleep'
             }
             waste(1000)
@@ -368,7 +373,7 @@ export function attr(...out): string {
                     break
                 case reset:
                     SGR('0')
-                    color = white
+                    color = 0
                     bold = false
                     dim = false
                     ul = false
@@ -496,10 +501,10 @@ export function hangup() {
     //  1.5-seconds of retro-fun  :)
     if (carrier && modem) {
         out(reset, '+++');      waste(500)
-        out('\nOK\n');          waste(400)
+        outln('\nOK');          waste(400)
         out('ATH\x0D');         waste(300)
         beep();                 waste(200)
-        out('\nNO CARRIER\n');  waste(100)
+        outln('\nNO CARRIER');  waste(100)
     }
 
     carrier = false
@@ -507,11 +512,25 @@ export function hangup() {
 }
 
 export function out(...out) {
-    if (carrier) process.stdout.write(attr(...out), emulation == 'XT' ? 'utf8' : 'ascii')
+    try {
+        if (carrier)
+            process.stdout.write(attr(...out), emulation == 'XT' ? 'utf8' : 'ascii')
+    }
+    catch (err) {
+        carrier = false
+    }
 }
 
 export function outln(...out) {
-    if (carrier) process.stdout.write(attr(...out, xvt.reset, '\n'), emulation == 'XT' ? 'utf8' : 'ascii')
+    try {
+        if (carrier)
+            process.stdout.write(attr(...out
+                , color || bold || dim || ul || flash || rvs ? xvt.reset : ''
+                , '\n'), emulation == 'XT' ? 'utf8' : 'ascii')
+    }
+    catch (err) {
+        carrier = false
+    }
 }
 
 let _SGR: string = ''   //  Select Graphic Rendition
@@ -557,14 +576,16 @@ export function rubout(n = 1) {
 let input: string = ''
 
 process.on('SIGHUP', function () {
-    out(' ** hangup ** \n', reset)
+    outln(' ** hangup ** ')
     reason = 'hangup'
+    carrier = false
     hangup()
 })
 
 process.on('SIGINT', function () {
-    out(' ** interrupt ** \n', reset)
+    outln(' ** interrupt ** ')
     reason = 'interrupted'
+    carrier = false
     hangup()
 })
 
