@@ -521,16 +521,10 @@ export function out(...out) {
     }
 }
 
-export function outln(...out) {
-    try {
-        if (carrier)
-            process.stdout.write(attr(...out
-                , color || bold || dim || ul || flash || rvs ? xvt.reset : ''
-                , '\n'), emulation == 'XT' ? 'utf8' : 'ascii')
-    }
-    catch (err) {
-        carrier = false
-    }
+export function outln(...params) {
+    let str = attr(...params)
+    let eol = attr(color || bold || dim || ul || flash || rvs ? xvt.reset : '', '\n')
+    out(str, eol)
 }
 
 let _SGR: string = ''   //  Select Graphic Rendition
