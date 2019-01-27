@@ -471,14 +471,10 @@ var xvt;
         }
     }
     xvt.out = out;
-    function outln(...out) {
-        try {
-            if (xvt.carrier)
-                process.stdout.write(attr(...out, xvt.color || xvt.bold || xvt.dim || xvt.ul || xvt.flash || xvt.rvs ? xvt.reset : '', '\n'), xvt.emulation == 'XT' ? 'utf8' : 'ascii');
-        }
-        catch (err) {
-            xvt.carrier = false;
-        }
+    function outln(...params) {
+        let str = attr(...params);
+        let eol = attr(xvt.color || xvt.bold || xvt.dim || xvt.ul || xvt.flash || xvt.rvs ? xvt.reset : '', '\n');
+        out(str, eol);
     }
     xvt.outln = outln;
     let _SGR = ''; //  Select Graphic Rendition
