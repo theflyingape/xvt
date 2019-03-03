@@ -200,7 +200,7 @@ export class session {
             echo = false
             eol = false
             if (!validator.isDefined(p.prompt)) p.prompt = '-pause-'
-            out(reverse, p.prompt, reset)
+            out('\r', reverse, p.prompt, reset)
         }
         else {
             echo = validator.isDefined(p.echo) ? p.echo : true
@@ -225,14 +225,15 @@ export class session {
         entryMax = validator.isDefined(p.max) ? p.max : (eol ? 0 : 1)
         eraser = validator.isDefined(p.eraser) ? p.eraser : ' '
 
-        if(row && col && echo && entryMax) {
-            for(let i = 0; i < entryMax; i++)
+        if (row && col && echo && entryMax) {
+            for (let i = 0; i < entryMax; i++)
                 out(eraser)
-            for(let i = 0; i < entryMax; i++)
+            for (let i = 0; i < entryMax; i++)
                 out('\x08')
         }
 
         await read()
+        out(reset)
 
         if (validator.isDefined(p.match)) {
             if (!p.match.test(entry)) {
@@ -243,10 +244,9 @@ export class session {
 
         if (validator.isBoolean(p.pause)) {
             echo = true
-            rubout(p.prompt.length)
+            out('\r', cll)
         }
 
-        out(reset)
         p.cb()
     }
 }
@@ -277,6 +277,26 @@ export let defaultPromptStyle: any = [ cyan ]
 export let enq: boolean = false
 
 export let app = new session()
+
+//  ANSI using VT (DEC), PC (IBM), or XT (UTF-8) encoding, else dumb ASCII
+export let emulation: string = 'XT'
+
+//  SGR registers
+export let color: number
+export let bold: boolean
+export let dim: boolean
+export let ul: boolean
+export let flash: boolean
+export let rvs: boolean
+
+let _color: number = 0
+let _bold: boolean = false
+let _dim: boolean = false
+let _ul: boolean = false
+let _flash: boolean = false
+let _rvs: boolean = false
+let _SGR: string = ''   //  Select Graphic Rendition
+let _text: string = ''  //  buffer constructed emulation output(s)
 
 export async function read() {
     let retry = idleTimeout * (1000 / pollingMS) >>0
@@ -349,17 +369,6 @@ export function waste(ms: number) {
     }
 }
 
-//  SGR registers
-export let color: number
-export let bold: boolean
-export let dim: boolean
-export let ul: boolean
-export let flash: boolean
-export let rvs: boolean
-
-//  ANSI using VT (DEC), PC (IBM), or XT (UTF-8) encoding, else dumb ASCII
-export let emulation: string = 'XT'
-
 export function attr(...out): string {
     out.forEach(data => {
         if (typeof data == 'number') {
@@ -371,8 +380,10 @@ export function attr(...out): string {
                 case clear:
                     text('\x1B[H\x1B[J')
                     break
+                case off:
                 case reset:
-                    SGR('0')
+                    if (color || bold || dim || ul || flash || rvs)
+                        text('\x1B[m')
                     color = 0
                     bold = false
                     dim = false
@@ -386,8 +397,7 @@ export function attr(...out): string {
                         bold = false
                         dim = false
                     }
-                    if (! bold)
-                        SGR(bright.toString())
+                    if (! bold) SGR(bright.toString())
                     bold = true
                     break
                 case faint:
@@ -396,8 +406,7 @@ export function attr(...out): string {
                         bold = false
                         dim = false
                     }
-                    if (! dim)
-                        SGR(faint.toString())
+                    if (! dim) SGR(faint.toString())
                     dim = true
                     break
                 case nobright:
@@ -413,50 +422,27 @@ export function attr(...out): string {
                     }
                     break
                 case uline:
-                    if (! ul)
-                        SGR(uline.toString())
+                    if (! ul) SGR(uline.toString())
                     ul = true
                     break
                 case nouline:
-                    if (ul)
-                        SGR(nouline.toString())
+                    if (ul) SGR(nouline.toString())
                     ul = false
                     break
                 case blink:
-                    if (! flash)
-                        SGR(blink.toString())
+                    if (! flash) SGR(blink.toString())
                     flash = true
                     break
                 case noblink:
-                    if (flash)
-                        SGR(noblink.toString())
+                    if (flash) SGR(noblink.toString())
                     flash = false
                     break
                 case reverse:
-                    if (! rvs)
-                        SGR(reverse.toString())
+                    if (! rvs) SGR(reverse.toString())
                     rvs = true
                     break
                 case noreverse:
-                    if (rvs)
-                        SGR(noreverse.toString())
-                    rvs = false
-                    break
-                case off:
-                    if (bold)
-                        SGR((off + bright).toString())
-                    if (dim)
-                        SGR((off + faint).toString())
-                    if (ul)
-                        SGR((off + uline).toString())
-                    if (flash)
-                        SGR((off + blink).toString())
-                    if (rvs)
-                        SGR((off + reverse).toString())
-                    bold = false
-                    dim = false
-                    ul = false
-                    flash = false
+                    if (rvs) SGR(noreverse.toString())
                     rvs = false
                     break
                 default:
@@ -484,7 +470,7 @@ export function attr(...out): string {
             text(data)
     })
 
-    text('')
+    text()
     let result = _text
     _text = ''
     return result
@@ -502,7 +488,7 @@ export function hangup() {
     if (carrier && modem) {
         out(reset, '+++');      waste(500)
         outln('\nOK');          waste(400)
-        out('ATH\x0D');         waste(300)
+        out('ATH\r');           waste(300)
         beep();                 waste(200)
         outln('\nNO CARRIER');  waste(100)
     }
@@ -522,19 +508,26 @@ export function out(...out) {
 }
 
 export function outln(...params) {
-    let str = attr(...params)
-    let eol = attr(color || bold || dim || ul || flash || rvs ? xvt.reset : '', '\n')
-    out(str, eol)
+    out(attr(...params), reset, '\n')
 }
-
-let _SGR: string = ''   //  Select Graphic Rendition
-let _text: string = ''  //  buffer constructed emulation output(s)
 
 export function restore() {
     out(emulation == 'XT' ? '\x1B[u' : '\x1B8')
+    color = _color
+    bold = _bold
+    dim = _dim
+    ul = _ul
+    flash = _flash
+    rvs = _rvs
 }
 
 export function save() {
+    _color = color
+    _bold = bold
+    _dim = dim
+    _ul = ul
+    _flash = flash
+    _rvs = rvs
     out(emulation == 'XT' ? '\x1B[s' : '\x1B7')
 }
 
@@ -548,7 +541,7 @@ function SGR(attr) {
     }
 }
 
-function text(s) {
+function text(s = '') {
         if (_SGR.length) {
             _text += _SGR + 'm'
             _SGR = ''

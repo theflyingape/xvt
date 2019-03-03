@@ -166,7 +166,7 @@ var xvt;
                     xvt.eol = false;
                     if (!xvt.validator.isDefined(p.prompt))
                         p.prompt = '-pause-';
-                    out(xvt.reverse, p.prompt, xvt.reset);
+                    out('\r', xvt.reverse, p.prompt, xvt.reset);
                 }
                 else {
                     xvt.echo = xvt.validator.isDefined(p.echo) ? p.echo : true;
@@ -195,6 +195,7 @@ var xvt;
                         out('\x08');
                 }
                 yield read();
+                out(xvt.reset);
                 if (xvt.validator.isDefined(p.match)) {
                     if (!p.match.test(xvt.entry)) {
                         this.refocus();
@@ -203,9 +204,8 @@ var xvt;
                 }
                 if (xvt.validator.isBoolean(p.pause)) {
                     xvt.echo = true;
-                    rubout(p.prompt.length);
+                    out('\r', xvt.cll);
                 }
-                out(xvt.reset);
                 p.cb();
             });
         }
@@ -233,6 +233,16 @@ var xvt;
     xvt.defaultPromptStyle = [xvt.cyan];
     xvt.enq = false;
     xvt.app = new session();
+    //  ANSI using VT (DEC), PC (IBM), or XT (UTF-8) encoding, else dumb ASCII
+    xvt.emulation = 'XT';
+    let _color = 0;
+    let _bold = false;
+    let _dim = false;
+    let _ul = false;
+    let _flash = false;
+    let _rvs = false;
+    let _SGR = ''; //  Select Graphic Rendition
+    let _text = ''; //  buffer constructed emulation output(s)
     function read() {
         return __awaiter(this, void 0, void 0, function* () {
             let retry = xvt.idleTimeout * (1000 / xvt.pollingMS) >> 0;
@@ -306,8 +316,6 @@ var xvt;
         }
     }
     xvt.waste = waste;
-    //  ANSI using VT (DEC), PC (IBM), or XT (UTF-8) encoding, else dumb ASCII
-    xvt.emulation = 'XT';
     function attr(...out) {
         out.forEach(data => {
             if (typeof data == 'number') {
@@ -319,8 +327,10 @@ var xvt;
                         case xvt.clear:
                             text('\x1B[H\x1B[J');
                             break;
+                        case xvt.off:
                         case xvt.reset:
-                            SGR('0');
+                            if (xvt.color || xvt.bold || xvt.dim || xvt.ul || xvt.flash || xvt.rvs)
+                                text('\x1B[m');
                             xvt.color = 0;
                             xvt.bold = false;
                             xvt.dim = false;
@@ -390,23 +400,6 @@ var xvt;
                                 SGR(xvt.noreverse.toString());
                             xvt.rvs = false;
                             break;
-                        case xvt.off:
-                            if (xvt.bold)
-                                SGR((xvt.off + xvt.bright).toString());
-                            if (xvt.dim)
-                                SGR((xvt.off + xvt.faint).toString());
-                            if (xvt.ul)
-                                SGR((xvt.off + xvt.uline).toString());
-                            if (xvt.flash)
-                                SGR((xvt.off + xvt.blink).toString());
-                            if (xvt.rvs)
-                                SGR((xvt.off + xvt.reverse).toString());
-                            xvt.bold = false;
-                            xvt.dim = false;
-                            xvt.ul = false;
-                            xvt.flash = false;
-                            xvt.rvs = false;
-                            break;
                         default:
                             xvt.color = data;
                             if (data >= xvt.black && data <= xvt.white || data >= xvt.lblack && data <= xvt.lwhite)
@@ -430,7 +423,7 @@ var xvt;
             else
                 text(data);
         });
-        text('');
+        text();
         let result = _text;
         _text = '';
         return result;
@@ -450,7 +443,7 @@ var xvt;
             waste(500);
             outln('\nOK');
             waste(400);
-            out('ATH\x0D');
+            out('ATH\r');
             waste(300);
             beep();
             waste(200);
@@ -472,18 +465,26 @@ var xvt;
     }
     xvt.out = out;
     function outln(...params) {
-        let str = attr(...params);
-        let eol = attr(xvt.color || xvt.bold || xvt.dim || xvt.ul || xvt.flash || xvt.rvs ? xvt.reset : '', '\n');
-        out(str, eol);
+        out(attr(...params), xvt.reset, '\n');
     }
     xvt.outln = outln;
-    let _SGR = ''; //  Select Graphic Rendition
-    let _text = ''; //  buffer constructed emulation output(s)
     function restore() {
         out(xvt.emulation == 'XT' ? '\x1B[u' : '\x1B8');
+        xvt.color = _color;
+        xvt.bold = _bold;
+        xvt.dim = _dim;
+        xvt.ul = _ul;
+        xvt.flash = _flash;
+        xvt.rvs = _rvs;
     }
     xvt.restore = restore;
     function save() {
+        _color = xvt.color;
+        _bold = xvt.bold;
+        _dim = xvt.dim;
+        _ul = xvt.ul;
+        _flash = xvt.flash;
+        _rvs = xvt.rvs;
         out(xvt.emulation == 'XT' ? '\x1B[s' : '\x1B7');
     }
     xvt.save = save;
@@ -496,7 +497,7 @@ var xvt;
             _SGR += attr;
         }
     }
-    function text(s) {
+    function text(s = '') {
         if (_SGR.length) {
             _text += _SGR + 'm';
             _SGR = '';

@@ -1,6 +1,6 @@
 {
   "name": "xvt",
-  "version": "1.0.30",
+  "version": "1.0.31",
   "description": "an event-driven terminal session handler",
   "main": "./xvt.js",
   "types": "./xvt.d.ts",
@@ -8,7 +8,7 @@
     "class-validator": "^0.9.1"
   },
   "devDependencies": {
-    "@types/node": "^10.12.18"
+    "@types/node": "^10.12.29"
   },
   "scripts": {
     "build": "tsc",
