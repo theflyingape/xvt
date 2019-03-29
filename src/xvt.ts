@@ -207,15 +207,12 @@ export class session {
             eol = validator.isDefined(p.eol) ? p.eol : true
 
             if (!validator.isDefined(p.promptStyle)) p.promptStyle = defaultPromptStyle
-            for (let n = 0; n < p.promptStyle.length; n++)
-                out(p.promptStyle[n])
+            out(...p.promptStyle)
 
-            if (validator.isDefined(p.prompt))
-                out(p.prompt)
+            if (validator.isDefined(p.prompt)) out(p.prompt)
 
             if (!validator.isDefined(p.inputStyle)) p.inputStyle = defaultInputStyle
-            for (let n = 0; n < p.inputStyle.length; n++)
-                out(p.inputStyle[n])
+            out(...p.inputStyle)
         }
 
         if (!eol && !enter.length) enter = ' '
@@ -397,7 +394,13 @@ export function attr(...out): string {
                         bold = false
                         dim = false
                     }
-                    if (! bold) SGR(bright.toString())
+                    if (! bold) {
+                        SGR(bright.toString())
+                        if (! color ) {
+                            color = white
+                            SGR(color.toString())
+                        }
+                    }
                     bold = true
                     break
                 case faint:
@@ -531,7 +534,7 @@ export function save() {
     out(emulation == 'XT' ? '\x1B[s' : '\x1B7')
 }
 
-function SGR(attr) {
+function SGR(attr: string) {
     if (emulation !== 'dumb') {
         if (_SGR == '')
             _SGR = '\x1B['

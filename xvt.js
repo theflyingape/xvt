@@ -173,14 +173,12 @@ var xvt;
                     xvt.eol = xvt.validator.isDefined(p.eol) ? p.eol : true;
                     if (!xvt.validator.isDefined(p.promptStyle))
                         p.promptStyle = xvt.defaultPromptStyle;
-                    for (let n = 0; n < p.promptStyle.length; n++)
-                        out(p.promptStyle[n]);
+                    out(...p.promptStyle);
                     if (xvt.validator.isDefined(p.prompt))
                         out(p.prompt);
                     if (!xvt.validator.isDefined(p.inputStyle))
                         p.inputStyle = xvt.defaultInputStyle;
-                    for (let n = 0; n < p.inputStyle.length; n++)
-                        out(p.inputStyle[n]);
+                    out(...p.inputStyle);
                 }
                 if (!xvt.eol && !xvt.enter.length)
                     xvt.enter = ' ';
@@ -235,6 +233,13 @@ var xvt;
     xvt.app = new session();
     //  ANSI using VT (DEC), PC (IBM), or XT (UTF-8) encoding, else dumb ASCII
     xvt.emulation = 'XT';
+    //  SGR registers
+    xvt.color = 0;
+    xvt.bold = false;
+    xvt.dim = false;
+    xvt.ul = false;
+    xvt.flash = false;
+    xvt.rvs = false;
     let _color = 0;
     let _bold = false;
     let _dim = false;
@@ -344,8 +349,13 @@ var xvt;
                                 xvt.bold = false;
                                 xvt.dim = false;
                             }
-                            if (!xvt.bold)
+                            if (!xvt.bold) {
                                 SGR(xvt.bright.toString());
+                                if (!xvt.color) {
+                                    xvt.color = xvt.white;
+                                    SGR(xvt.color.toString());
+                                }
+                            }
                             xvt.bold = true;
                             break;
                         case xvt.faint:
