@@ -27,6 +27,7 @@ var xvt;
     }
     */
     xvt.validator = new class_validator_1.Validator();
+    xvt.romanize = require('romanize');
     //  SGR (https://en.wikipedia.org/wiki/ANSI_escape_code#SGR_.28Select_Graphic_Rendition.29_parameters)
     xvt.cll = -2;
     xvt.clear = -1;
@@ -233,13 +234,6 @@ var xvt;
     xvt.app = new session();
     //  ANSI using VT (DEC), PC (IBM), or XT (UTF-8) encoding, else dumb ASCII
     xvt.emulation = 'XT';
-    //  SGR registers
-    xvt.color = 0;
-    xvt.bold = false;
-    xvt.dim = false;
-    xvt.ul = false;
-    xvt.flash = false;
-    xvt.rvs = false;
     let _color = 0;
     let _bold = false;
     let _dim = false;

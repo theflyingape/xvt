@@ -5,7 +5,7 @@
  * - emulation interface: dumb, VT100, ANSI-PC, ANSI-UTF emulation           *
  * - user input interface: formatted and roll-and-scroll                     *
 \*****************************************************************************/
-import { Validator } from "class-validator";
+import { Validator } from 'class-validator';
 declare module xvt {
     interface Field {
         cb: Function;
@@ -30,6 +30,7 @@ declare module xvt {
         [key: string]: Field;
     }
     const validator: Validator;
+    const romanize: any;
     const cll = -2;
     const clear = -1;
     const reset = 0;

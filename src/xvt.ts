@@ -6,7 +6,7 @@
  * - user input interface: formatted and roll-and-scroll                     *
 \*****************************************************************************/
 
-import { Validator } from "class-validator"
+import { Validator } from 'class-validator'
 
 module xvt {
 
@@ -43,6 +43,7 @@ export interface iForm {
 }
 */
 export const validator = new Validator()
+export const romanize = require('romanize')
 //  SGR (https://en.wikipedia.org/wiki/ANSI_escape_code#SGR_.28Select_Graphic_Rendition.29_parameters)
 export const cll        =  -2
 export const clear      =  -1
@@ -379,7 +380,7 @@ export function attr(...out): string {
                     break
                 case off:
                 case reset:
-                    if (color || bold || dim || ul || flash || rvs)
+                    if (data == off || color || bold || dim || ul || flash || rvs)
                         text('\x1B[m')
                     color = 0
                     bold = false
@@ -413,8 +414,7 @@ export function attr(...out): string {
                     dim = true
                     break
                 case nobright:
-                    if (bold)
-                        SGR(nobright.toString())
+                    if (bold) SGR(nobright.toString())
                     bold = false
                     break
                 case normal:
