@@ -1,6 +1,6 @@
 /*****************************************************************************\
  *  XVT authored by: Robert Hurst <theflyingape@gmail.com>                   *
- *      an event-driven terminal session handler                             *
+ *      an asynchronous terminal session handler                             *
  *                                                                           *
  * - emulation interface: dumb, VT100, ANSI-PC, ANSI-UTF emulation           *
  * - user input interface: formatted and roll-and-scroll                     *
@@ -10,20 +10,23 @@ import { Validator } from 'class-validator'
 
 module xvt {
 
+export type emulator = string | 'dumb' | 'VT' | 'PC' | 'XT'
+
 export interface Field {
-	cb: Function
-	row?: number
-	col?: number
+    cb: Function
+    row?: number
+    col?: number
     prompt?: string
     cancel?: string
     enter?: string
-	echo?: boolean
-	eol?: boolean
+    echo?: boolean
+    eol?: boolean
     eraser?: string
-	min?: number
-	max?: number
-	match?: RegExp
-	pause?: boolean
+    lines?: number
+    min?: number
+    max?: number
+    match?: RegExp
+    pause?: boolean
     timeout?: number
     inputStyle?: any[]
     promptStyle?: any[]
@@ -42,8 +45,8 @@ export interface iForm {
 	[key: string]: Form
 }
 */
-export const validator = new Validator()
 export const romanize = require('romanize')
+export const validator = new Validator()
 //  SGR (https://en.wikipedia.org/wiki/ANSI_escape_code#SGR_.28Select_Graphic_Rendition.29_parameters)
 export const cll        =  -2
 export const clear      =  -1
@@ -92,52 +95,71 @@ export const lMagenta   = 105
 export const lCyan      = 106
 export const lWhite     = 107
 
-//  ░ ▒ ▓ █ 
-export const LGradient = {
-    VT:'\x1B(0\x1B[2ma\x1B[ma\x1B[7m \x1B[1m \x1B[27m\x1B(B',
-    PC:'\xB0\xB1\xB2\xDB',
-    XT:'\u2591\u2592\u2593\u2588',
-    dumb: ' :: '
-}
-
-//  █ ▓ ▒ ░ 
-export const RGradient = {
-    VT:'\x1B(0\x1B[1;7m \x1B[22m \x1B[ma\x1B[2ma\x1B[m\x1B(B',
-    PC:'\xDB\xB2\xB1\xB0',
-    XT:'\u2588\u2593\u2592\u2591',
-    dumb: ' :: '
-}
-
-//  ─ └ ┴ ┘ ├ ┼ ┤ ┌ ┬ ┐ │
-export const Draw = {
-    VT: [ 'q', 'm', 'v', 'j', 't', 'n', 'u', 'l', 'w', 'k', 'x' ],
-    PC: [ '\xC4', '\xC0', '\xC1', '\xD9', '\xC3', '\xC5', '\xB4', '\xDA', '\xC2', '\xBF', '\xB3' ],
-    XT: [ '\u2500', '\u2514', '\u2534', '\u2518', '\u251C', '\u253C', '\u2524', '\u250C', '\u252C', '\u2510', '\u2502' ],
-    dumb: [ '-', '+', '^', '+', '>', '+', '<', '+', 'v', '+', '|' ]
-}
-
-//  · 
-export const Empty = {
-    VT: '\x1B(0\x7E\x1B(B',
-    PC: '\xFA',
-    XT: '\u00B7',
-    dumb: '.'
-}
-
 export class session {
 
-    constructor () {
-    /*  const tty = require('tty')
-        if (tty.isatty(0))
-            tty.ReadStream(0).setRawMode(true)  */
-        if (process.stdin.isTTY)
-            process.stdin.setRawMode(true)
+    constructor (e: emulator = 'XT') {
         carrier = true
+//      const tty = require('tty')
+//      if (tty.isatty(0)) tty.ReadStream(0).setRawMode(true)
+        if (process.stdin.isTTY) process.stdin.setRawMode(true)
+        this.emulation = e
         sessionStart = new Date()
     }
 
+//  ANSI using VT (DEC), PC (IBM), or XT (UTF-8) encoding, else dumb ASCII
+    private _emulation: emulator
     private _fields: iField
     private _focus: string|number
+
+    get emulation() {
+        return this._emulation
+    }
+
+    set emulation(e: emulator) {
+        process.stdin.setEncoding(e == 'XT' ? 'utf8' : 'ascii')
+        this._emulation = e
+    }
+
+
+//  ░ ▒ ▓ █ 
+    get LGradient() {
+        return {
+            VT: '\x1B(0\x1B[2ma\x1B[ma\x1B[7m \x1B[1m \x1B[27m\x1B(B',
+            PC: '\xB0\xB1\xB2\xDB',
+            XT: '\u2591\u2592\u2593\u2588',
+          dumb: ' :: '
+        }[this._emulation]
+    }
+
+//  █ ▓ ▒ ░ 
+    get RGradient() {
+        return {
+            VT:'\x1B(0\x1B[1;7m \x1B[22m \x1B[ma\x1B[2ma\x1B[m\x1B(B',
+            PC:'\xDB\xB2\xB1\xB0',
+            XT:'\u2588\u2593\u2592\u2591',
+          dumb: ' :: '
+        }[this._emulation]
+}
+
+//  ─ └ ┴ ┘ ├ ┼ ┤ ┌ ┬ ┐ │
+    get Draw() {
+        return {
+            VT: [ 'q', 'm', 'v', 'j', 't', 'n', 'u', 'l', 'w', 'k', 'x' ],
+            PC: [ '\xC4', '\xC0', '\xC1', '\xD9', '\xC3', '\xC5', '\xB4', '\xDA', '\xC2', '\xBF', '\xB3' ],
+            XT: [ '\u2500', '\u2514', '\u2534', '\u2518', '\u251C', '\u253C', '\u2524', '\u250C', '\u252C', '\u2510', '\u2502' ],
+          dumb: [ '-', '+', '^', '+', '>', '+', '<', '+', 'v', '+', '|' ]
+        }[this._emulation]
+}
+
+//  · 
+    get Empty() {
+        return {
+            VT: '\x1B(0\x7E\x1B(B',
+            PC: '\xFA',
+            XT: '\u00B7',
+          dumb: '.'
+        }[this._emulation]
+}
 
     get form() {
         return this._fields
@@ -152,7 +174,8 @@ export class session {
     set focus(name: string|number) {
         let p = this._fields[name]
         if (!validator.isDefined(p)) {
-            outln('\n?xvt form error :: field "', name,'" undefined')
+            beep()
+            outln(off, bright, '?ERROR in xvt.app.form :: field "', name,'" undefined')
             this.refocus()
             return
         }
@@ -209,8 +232,15 @@ export class session {
 
             if (!validator.isDefined(p.promptStyle)) p.promptStyle = defaultPromptStyle
             out(...p.promptStyle)
-
             if (validator.isDefined(p.prompt)) out(p.prompt)
+
+            lines = validator.isDefined(p.lines) ? p.lines : 0
+            if (lines) {
+                line = 0
+                outln()
+                out(bright, (line + 1).toString(), normal, '/', lines.toString(), faint, '] ', normal)
+                multi = []
+            }
 
             if (!validator.isDefined(p.inputStyle)) p.inputStyle = defaultInputStyle
             out(...p.inputStyle)
@@ -220,7 +250,7 @@ export class session {
 
         idleTimeout = validator.isDefined(p.timeout) ? p.timeout : defaultTimeout
         entryMin = validator.isDefined(p.min) ? p.min : 0
-        entryMax = validator.isDefined(p.max) ? p.max : (eol ? 0 : 1)
+        entryMax = validator.isDefined(p.max) ? p.max : (lines ? 72 : eol ? 0 : 1)
         eraser = validator.isDefined(p.eraser) ? p.eraser : ' '
 
         if (row && col && echo && entryMax) {
@@ -237,6 +267,22 @@ export class session {
             if (!p.match.test(entry)) {
                 this.refocus()
                 return
+            }
+        }
+
+        while (lines && line < lines) {
+            line++
+            outln()
+            if (entry.length) multi[line] = entry
+            if (entry.length && line < lines) {
+                out(bright, (line + 1).toString(), normal, '/', lines.toString(), faint, '] ', normal)
+                out(...p.inputStyle)
+                await read()
+                out(reset)
+            }
+            else {
+                entry = multi.join('\n')
+                lines = 0
             }
         }
 
@@ -261,23 +307,9 @@ export let sessionAllowed: number = 0
 export let sessionStart: Date = null
 export let terminator: string = null
 export let typeahead: string = ''
-
 export let entry: string = ''
-export let enter: string = ''
-export let cancel: string = ''
-export let echo: boolean = true
-export let eol: boolean = true
-export let entryMin: number = 0
-export let entryMax: number = 0
-export let eraser: string = ' '
-export let defaultInputStyle: any = [ bright, white ]
-export let defaultPromptStyle: any = [ cyan ]
-export let enq: boolean = false
 
 export let app = new session()
-
-//  ANSI using VT (DEC), PC (IBM), or XT (UTF-8) encoding, else dumb ASCII
-export let emulation: string = 'XT'
 
 //  SGR registers
 export let color: number
@@ -350,9 +382,6 @@ export async function read() {
     //  sanity resets back to default stdin processing
     echo = true
     eol = true
-    entryMin = 0
-    entryMax = 0
-    eraser = ' '
     input = ''
 }
 
@@ -370,7 +399,7 @@ export function waste(ms: number) {
 export function attr(...out): string {
     out.forEach(data => {
         if (typeof data == 'number') {
-            if (emulation !== 'dumb') {
+            if (app.emulation !== 'dumb') {
                 switch (data) {
                 case cll:
                     text('\x1B[K')
@@ -451,10 +480,10 @@ export function attr(...out): string {
                 default:
                     color = data
                     if (data >= black && data <= white || data >= lblack && data <= lwhite)
-                        if (emulation !== 'VT')
+                        if (app.emulation !== 'VT')
                             SGR(data.toString())
                     if (data >= Black && data <= White || data >= lBlack && data <= lWhite) {
-                        if (emulation !== 'VT')
+                        if (app.emulation !== 'VT')
                             SGR(data.toString())
                         else {
                             if (! rvs)
@@ -489,7 +518,7 @@ export function hangup() {
 
     //  1.5-seconds of retro-fun  :)
     if (carrier && modem) {
-        out(reset, '+++');      waste(500)
+        out(off, '+++');      waste(500)
         outln('\nOK');          waste(400)
         out('ATH\r');           waste(300)
         beep();                 waste(200)
@@ -503,7 +532,7 @@ export function hangup() {
 export function out(...out) {
     try {
         if (carrier)
-            process.stdout.write(attr(...out), emulation == 'XT' ? 'utf8' : 'ascii')
+            process.stdout.write(attr(...out))
     }
     catch (err) {
         carrier = false
@@ -515,7 +544,7 @@ export function outln(...params) {
 }
 
 export function restore() {
-    out(emulation == 'XT' ? '\x1B[u' : '\x1B8')
+    out(app.emulation == 'XT' ? '\x1B[u' : '\x1B8')
     color = _color
     bold = _bold
     dim = _dim
@@ -531,11 +560,11 @@ export function save() {
     _ul = ul
     _flash = flash
     _rvs = rvs
-    out(emulation == 'XT' ? '\x1B[s' : '\x1B7')
+    out(app.emulation == 'XT' ? '\x1B[s' : '\x1B7')
 }
 
 function SGR(attr: string) {
-    if (emulation !== 'dumb') {
+    if (app.emulation !== 'dumb') {
         if (_SGR == '')
             _SGR = '\x1B['
         else
@@ -563,17 +592,30 @@ export function rubout(n = 1) {
 }
 
 //  signal & stdin event handlers
+let cancel: string = ''
+let defaultInputStyle: any = [ bright, white ]
+let defaultPromptStyle: any = [ cyan ]
+let echo: boolean = true
+let enq: boolean = false
+let enter: string = ''
+let entryMin: number = 0
+let entryMax: number = 0
+let eol: boolean = true
+let eraser: string = ' '
 let input: string = ''
+let line: number = 0
+let lines: number = 0
+let multi: string[]
 
 process.on('SIGHUP', function () {
-    outln(' ** hangup ** ')
+    outln(off, faint, ' ** hangup ** ')
     reason = 'hangup'
     carrier = false
     hangup()
 })
 
 process.on('SIGINT', function () {
-    outln(' ** interrupt ** ')
+    outln(off, bright, ' ** interrupt ** ')
     reason = 'interrupted'
     carrier = false
     hangup()
@@ -584,7 +626,7 @@ process.stdin.on('data', function(key: Buffer) {
     let k: string
     let k0: string
     try {
-        k = typeahead + key.toString(emulation == 'XT' ? 'utf8' : 'ascii')
+        k = typeahead + key.toString()
         k0 = k.substr(0, 1)
         typeahead = ''
     }
@@ -603,7 +645,7 @@ process.stdin.on('data', function(key: Buffer) {
 
     //  ctrl-d or ctrl-z to disconnect the session
     if (k0 == '\x04' || k0 == '\x1A') {
-        out(' ** disconnect ** \n')
+        outln(off, faint, ' ** disconnect ** ')
         reason = 'manual disconnect'
         hangup()
     }

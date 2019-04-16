@@ -1,7 +1,7 @@
 "use strict";
 /*****************************************************************************\
  *  XVT authored by: Robert Hurst <theflyingape@gmail.com>                   *
- *      an event-driven terminal session handler                             *
+ *      an asynchronous terminal session handler                             *
  *                                                                           *
  * - emulation interface: dumb, VT100, ANSI-PC, ANSI-UTF emulation           *
  * - user input interface: formatted and roll-and-scroll                     *
@@ -26,8 +26,8 @@ var xvt;
         [key: string]: Form
     }
     */
-    xvt.validator = new class_validator_1.Validator();
     xvt.romanize = require('romanize');
+    xvt.validator = new class_validator_1.Validator();
     //  SGR (https://en.wikipedia.org/wiki/ANSI_escape_code#SGR_.28Select_Graphic_Rendition.29_parameters)
     xvt.cll = -2;
     xvt.clear = -1;
@@ -75,43 +75,58 @@ var xvt;
     xvt.lMagenta = 105;
     xvt.lCyan = 106;
     xvt.lWhite = 107;
-    //  ░ ▒ ▓ █ 
-    xvt.LGradient = {
-        VT: '\x1B(0\x1B[2ma\x1B[ma\x1B[7m \x1B[1m \x1B[27m\x1B(B',
-        PC: '\xB0\xB1\xB2\xDB',
-        XT: '\u2591\u2592\u2593\u2588',
-        dumb: ' :: '
-    };
-    //  █ ▓ ▒ ░ 
-    xvt.RGradient = {
-        VT: '\x1B(0\x1B[1;7m \x1B[22m \x1B[ma\x1B[2ma\x1B[m\x1B(B',
-        PC: '\xDB\xB2\xB1\xB0',
-        XT: '\u2588\u2593\u2592\u2591',
-        dumb: ' :: '
-    };
-    //  ─ └ ┴ ┘ ├ ┼ ┤ ┌ ┬ ┐ │
-    xvt.Draw = {
-        VT: ['q', 'm', 'v', 'j', 't', 'n', 'u', 'l', 'w', 'k', 'x'],
-        PC: ['\xC4', '\xC0', '\xC1', '\xD9', '\xC3', '\xC5', '\xB4', '\xDA', '\xC2', '\xBF', '\xB3'],
-        XT: ['\u2500', '\u2514', '\u2534', '\u2518', '\u251C', '\u253C', '\u2524', '\u250C', '\u252C', '\u2510', '\u2502'],
-        dumb: ['-', '+', '^', '+', '>', '+', '<', '+', 'v', '+', '|']
-    };
-    //  · 
-    xvt.Empty = {
-        VT: '\x1B(0\x7E\x1B(B',
-        PC: '\xFA',
-        XT: '\u00B7',
-        dumb: '.'
-    };
     class session {
-        constructor() {
-            /*  const tty = require('tty')
-                if (tty.isatty(0))
-                    tty.ReadStream(0).setRawMode(true)  */
+        constructor(e = 'XT') {
+            xvt.carrier = true;
+            //      const tty = require('tty')
+            //      if (tty.isatty(0)) tty.ReadStream(0).setRawMode(true)
             if (process.stdin.isTTY)
                 process.stdin.setRawMode(true);
-            xvt.carrier = true;
+            this.emulation = e;
             xvt.sessionStart = new Date();
+        }
+        get emulation() {
+            return this._emulation;
+        }
+        set emulation(e) {
+            process.stdin.setEncoding(e == 'XT' ? 'utf8' : 'ascii');
+            this._emulation = e;
+        }
+        //  ░ ▒ ▓ █ 
+        get LGradient() {
+            return {
+                VT: '\x1B(0\x1B[2ma\x1B[ma\x1B[7m \x1B[1m \x1B[27m\x1B(B',
+                PC: '\xB0\xB1\xB2\xDB',
+                XT: '\u2591\u2592\u2593\u2588',
+                dumb: ' :: '
+            }[this._emulation];
+        }
+        //  █ ▓ ▒ ░ 
+        get RGradient() {
+            return {
+                VT: '\x1B(0\x1B[1;7m \x1B[22m \x1B[ma\x1B[2ma\x1B[m\x1B(B',
+                PC: '\xDB\xB2\xB1\xB0',
+                XT: '\u2588\u2593\u2592\u2591',
+                dumb: ' :: '
+            }[this._emulation];
+        }
+        //  ─ └ ┴ ┘ ├ ┼ ┤ ┌ ┬ ┐ │
+        get Draw() {
+            return {
+                VT: ['q', 'm', 'v', 'j', 't', 'n', 'u', 'l', 'w', 'k', 'x'],
+                PC: ['\xC4', '\xC0', '\xC1', '\xD9', '\xC3', '\xC5', '\xB4', '\xDA', '\xC2', '\xBF', '\xB3'],
+                XT: ['\u2500', '\u2514', '\u2534', '\u2518', '\u251C', '\u253C', '\u2524', '\u250C', '\u252C', '\u2510', '\u2502'],
+                dumb: ['-', '+', '^', '+', '>', '+', '<', '+', 'v', '+', '|']
+            }[this._emulation];
+        }
+        //  · 
+        get Empty() {
+            return {
+                VT: '\x1B(0\x7E\x1B(B',
+                PC: '\xFA',
+                XT: '\u00B7',
+                dumb: '.'
+            }[this._emulation];
         }
         get form() {
             return this._fields;
@@ -123,7 +138,8 @@ var xvt;
         set focus(name) {
             let p = this._fields[name];
             if (!xvt.validator.isDefined(p)) {
-                outln('\n?xvt form error :: field "', name, '" undefined');
+                beep();
+                outln(xvt.off, xvt.bright, '?ERROR in xvt.app.form :: field "', name, '" undefined');
                 this.refocus();
                 return;
             }
@@ -131,10 +147,10 @@ var xvt;
             this._read();
         }
         nofocus(keep = false) {
-            xvt.echo = keep;
-            xvt.entryMin = 0;
-            xvt.entryMax = 0;
-            xvt.eol = false;
+            echo = keep;
+            entryMin = 0;
+            entryMax = 0;
+            eol = false;
             this._focus = null;
         }
         refocus() {
@@ -144,14 +160,14 @@ var xvt;
         _read() {
             return __awaiter(this, void 0, void 0, function* () {
                 let p = this._fields[this.focus];
-                xvt.cancel = xvt.validator.isDefined(p.cancel) ? p.cancel : '';
-                xvt.enter = xvt.validator.isDefined(p.enter) ? p.enter : '';
+                cancel = xvt.validator.isDefined(p.cancel) ? p.cancel : '';
+                enter = xvt.validator.isDefined(p.enter) ? p.enter : '';
                 if (p.enq) {
-                    xvt.enq = true;
+                    enq = true;
                     out(p.prompt);
                     xvt.idleTimeout = 5;
                     yield read();
-                    xvt.enq = false;
+                    enq = false;
                     p.cb();
                     return;
                 }
@@ -163,34 +179,41 @@ var xvt;
                 else
                     outln(); //  roll-and-scroll
                 if (p.pause) {
-                    xvt.echo = false;
-                    xvt.eol = false;
+                    echo = false;
+                    eol = false;
                     if (!xvt.validator.isDefined(p.prompt))
                         p.prompt = '-pause-';
                     out('\r', xvt.reverse, p.prompt, xvt.reset);
                 }
                 else {
-                    xvt.echo = xvt.validator.isDefined(p.echo) ? p.echo : true;
-                    xvt.eol = xvt.validator.isDefined(p.eol) ? p.eol : true;
+                    echo = xvt.validator.isDefined(p.echo) ? p.echo : true;
+                    eol = xvt.validator.isDefined(p.eol) ? p.eol : true;
                     if (!xvt.validator.isDefined(p.promptStyle))
-                        p.promptStyle = xvt.defaultPromptStyle;
+                        p.promptStyle = defaultPromptStyle;
                     out(...p.promptStyle);
                     if (xvt.validator.isDefined(p.prompt))
                         out(p.prompt);
+                    lines = xvt.validator.isDefined(p.lines) ? p.lines : 0;
+                    if (lines) {
+                        line = 0;
+                        outln();
+                        out(xvt.bright, (line + 1).toString(), xvt.normal, '/', lines.toString(), xvt.faint, '] ', xvt.normal);
+                        multi = [];
+                    }
                     if (!xvt.validator.isDefined(p.inputStyle))
-                        p.inputStyle = xvt.defaultInputStyle;
+                        p.inputStyle = defaultInputStyle;
                     out(...p.inputStyle);
                 }
-                if (!xvt.eol && !xvt.enter.length)
-                    xvt.enter = ' ';
+                if (!eol && !enter.length)
+                    enter = ' ';
                 xvt.idleTimeout = xvt.validator.isDefined(p.timeout) ? p.timeout : xvt.defaultTimeout;
-                xvt.entryMin = xvt.validator.isDefined(p.min) ? p.min : 0;
-                xvt.entryMax = xvt.validator.isDefined(p.max) ? p.max : (xvt.eol ? 0 : 1);
-                xvt.eraser = xvt.validator.isDefined(p.eraser) ? p.eraser : ' ';
-                if (row && col && xvt.echo && xvt.entryMax) {
-                    for (let i = 0; i < xvt.entryMax; i++)
-                        out(xvt.eraser);
-                    for (let i = 0; i < xvt.entryMax; i++)
+                entryMin = xvt.validator.isDefined(p.min) ? p.min : 0;
+                entryMax = xvt.validator.isDefined(p.max) ? p.max : (lines ? 72 : eol ? 0 : 1);
+                eraser = xvt.validator.isDefined(p.eraser) ? p.eraser : ' ';
+                if (row && col && echo && entryMax) {
+                    for (let i = 0; i < entryMax; i++)
+                        out(eraser);
+                    for (let i = 0; i < entryMax; i++)
                         out('\x08');
                 }
                 yield read();
@@ -201,8 +224,24 @@ var xvt;
                         return;
                     }
                 }
+                while (lines && line < lines) {
+                    line++;
+                    outln();
+                    if (xvt.entry.length)
+                        multi[line] = xvt.entry;
+                    if (xvt.entry.length && line < lines) {
+                        out(xvt.bright, (line + 1).toString(), xvt.normal, '/', lines.toString(), xvt.faint, '] ', xvt.normal);
+                        out(...p.inputStyle);
+                        yield read();
+                        out(xvt.reset);
+                    }
+                    else {
+                        xvt.entry = multi.join('\n');
+                        lines = 0;
+                    }
+                }
                 if (xvt.validator.isBoolean(p.pause)) {
-                    xvt.echo = true;
+                    echo = true;
                     out('\r', xvt.cll);
                 }
                 p.cb();
@@ -221,19 +260,7 @@ var xvt;
     xvt.terminator = null;
     xvt.typeahead = '';
     xvt.entry = '';
-    xvt.enter = '';
-    xvt.cancel = '';
-    xvt.echo = true;
-    xvt.eol = true;
-    xvt.entryMin = 0;
-    xvt.entryMax = 0;
-    xvt.eraser = ' ';
-    xvt.defaultInputStyle = [xvt.bright, xvt.white];
-    xvt.defaultPromptStyle = [xvt.cyan];
-    xvt.enq = false;
     xvt.app = new session();
-    //  ANSI using VT (DEC), PC (IBM), or XT (UTF-8) encoding, else dumb ASCII
-    xvt.emulation = 'XT';
     let _color = 0;
     let _bold = false;
     let _dim = false;
@@ -269,9 +296,9 @@ var xvt;
             }
             if (!xvt.carrier || !retry) {
                 //  any remaining cancel operations will take over, else bye-bye
-                if (xvt.cancel.length) {
+                if (cancel.length) {
                     rubout(input.length);
-                    xvt.entry = xvt.cancel;
+                    xvt.entry = cancel;
                     out(xvt.entry);
                 }
                 else {
@@ -289,17 +316,14 @@ var xvt;
                 }
                 //return new Promise(reject => 'timeout')
             }
-            if (xvt.cancel.length && xvt.terminator === '\x1B') {
+            if (cancel.length && xvt.terminator === '\x1B') {
                 rubout(input.length);
-                xvt.entry = xvt.cancel;
+                xvt.entry = cancel;
                 out(xvt.entry);
             }
             //  sanity resets back to default stdin processing
-            xvt.echo = true;
-            xvt.eol = true;
-            xvt.entryMin = 0;
-            xvt.entryMax = 0;
-            xvt.eraser = ' ';
+            echo = true;
+            eol = true;
             input = '';
         });
     }
@@ -318,7 +342,7 @@ var xvt;
     function attr(...out) {
         out.forEach(data => {
             if (typeof data == 'number') {
-                if (xvt.emulation !== 'dumb') {
+                if (xvt.app.emulation !== 'dumb') {
                     switch (data) {
                         case xvt.cll:
                             text('\x1B[K');
@@ -328,7 +352,7 @@ var xvt;
                             break;
                         case xvt.off:
                         case xvt.reset:
-                            if (xvt.color || xvt.bold || xvt.dim || xvt.ul || xvt.flash || xvt.rvs)
+                            if (data == xvt.off || xvt.color || xvt.bold || xvt.dim || xvt.ul || xvt.flash || xvt.rvs)
                                 text('\x1B[m');
                             xvt.color = 0;
                             xvt.bold = false;
@@ -407,10 +431,10 @@ var xvt;
                         default:
                             xvt.color = data;
                             if (data >= xvt.black && data <= xvt.white || data >= xvt.lblack && data <= xvt.lwhite)
-                                if (xvt.emulation !== 'VT')
+                                if (xvt.app.emulation !== 'VT')
                                     SGR(data.toString());
                             if (data >= xvt.Black && data <= xvt.White || data >= xvt.lBlack && data <= xvt.lWhite) {
-                                if (xvt.emulation !== 'VT')
+                                if (xvt.app.emulation !== 'VT')
                                     SGR(data.toString());
                                 else {
                                     if (!xvt.rvs)
@@ -443,7 +467,7 @@ var xvt;
         xvt.ondrop = null;
         //  1.5-seconds of retro-fun  :)
         if (xvt.carrier && xvt.modem) {
-            out(xvt.reset, '+++');
+            out(xvt.off, '+++');
             waste(500);
             outln('\nOK');
             waste(400);
@@ -461,7 +485,7 @@ var xvt;
     function out(...out) {
         try {
             if (xvt.carrier)
-                process.stdout.write(attr(...out), xvt.emulation == 'XT' ? 'utf8' : 'ascii');
+                process.stdout.write(attr(...out));
         }
         catch (err) {
             xvt.carrier = false;
@@ -473,7 +497,7 @@ var xvt;
     }
     xvt.outln = outln;
     function restore() {
-        out(xvt.emulation == 'XT' ? '\x1B[u' : '\x1B8');
+        out(xvt.app.emulation == 'XT' ? '\x1B[u' : '\x1B8');
         xvt.color = _color;
         xvt.bold = _bold;
         xvt.dim = _dim;
@@ -489,11 +513,11 @@ var xvt;
         _ul = xvt.ul;
         _flash = xvt.flash;
         _rvs = xvt.rvs;
-        out(xvt.emulation == 'XT' ? '\x1B[s' : '\x1B7');
+        out(xvt.app.emulation == 'XT' ? '\x1B[s' : '\x1B7');
     }
     xvt.save = save;
     function SGR(attr) {
-        if (xvt.emulation !== 'dumb') {
+        if (xvt.app.emulation !== 'dumb') {
             if (_SGR == '')
                 _SGR = '\x1B[';
             else
@@ -513,21 +537,34 @@ var xvt;
     }
     xvt.plot = plot;
     function rubout(n = 1) {
-        if (xvt.echo)
+        if (echo)
             for (let i = 0; i < n; i++)
-                out('\x08', xvt.eraser, '\x08');
+                out('\x08', eraser, '\x08');
     }
     xvt.rubout = rubout;
     //  signal & stdin event handlers
+    let cancel = '';
+    let defaultInputStyle = [xvt.bright, xvt.white];
+    let defaultPromptStyle = [xvt.cyan];
+    let echo = true;
+    let enq = false;
+    let enter = '';
+    let entryMin = 0;
+    let entryMax = 0;
+    let eol = true;
+    let eraser = ' ';
     let input = '';
+    let line = 0;
+    let lines = 0;
+    let multi;
     process.on('SIGHUP', function () {
-        outln(' ** hangup ** ');
+        outln(xvt.off, xvt.faint, ' ** hangup ** ');
         xvt.reason = 'hangup';
         xvt.carrier = false;
         hangup();
     });
     process.on('SIGINT', function () {
-        outln(' ** interrupt ** ');
+        outln(xvt.off, xvt.bright, ' ** interrupt ** ');
         xvt.reason = 'interrupted';
         xvt.carrier = false;
         hangup();
@@ -537,7 +574,7 @@ var xvt;
         let k;
         let k0;
         try {
-            k = xvt.typeahead + key.toString(xvt.emulation == 'XT' ? 'utf8' : 'ascii');
+            k = xvt.typeahead + key.toString();
             k0 = k.substr(0, 1);
             xvt.typeahead = '';
         }
@@ -546,7 +583,7 @@ var xvt;
             return;
         }
         // special ENQUIRY result
-        if (xvt.enq) {
+        if (enq) {
             xvt.entry = k;
             xvt.terminator = k0;
             process.stdin.pause();
@@ -554,14 +591,14 @@ var xvt;
         }
         //  ctrl-d or ctrl-z to disconnect the session
         if (k0 == '\x04' || k0 == '\x1A') {
-            out(' ** disconnect ** \n');
+            outln(xvt.off, xvt.faint, ' ** disconnect ** ');
             xvt.reason = 'manual disconnect';
             hangup();
         }
         //if (validator.isEmpty(app.focus) && !echo) return
         //  rubout
         if (k0 == '\x08' || k0 == '\x7F') {
-            if (xvt.eol && input.length > 0) {
+            if (eol && input.length > 0) {
                 input = input.substr(0, input.length - 1);
                 rubout();
                 return;
@@ -580,13 +617,13 @@ var xvt;
         }
         //  any text entry mode requires <CR> as the input line terminator
         if (k0 == '\x0D') {
-            if (!input.length && xvt.enter.length > 0) {
-                input = xvt.enter;
-                if (xvt.echo)
+            if (!input.length && enter.length > 0) {
+                input = enter;
+                if (echo)
                     out(input);
             }
-            else if (input.length < xvt.entryMin) {
-                if (!xvt.echo)
+            else if (input.length < entryMin) {
+                if (!echo)
                     input = '';
                 beep();
                 return;
@@ -600,10 +637,10 @@ var xvt;
         }
         //  eat other control keys
         if (k0 < ' ') {
-            if (xvt.eol) {
-                if (xvt.cancel.length) {
+            if (eol) {
+                if (cancel.length) {
                     rubout(input.length);
-                    xvt.entry = xvt.cancel;
+                    xvt.entry = cancel;
                     out(xvt.entry);
                 }
                 else
@@ -695,16 +732,16 @@ var xvt;
         if (k.length > 1)
             xvt.typeahead = k.substr(1);
         //  don't exceed maximum input allowed
-        if (xvt.eol && xvt.entryMax > 0 && input.length >= xvt.entryMax) {
+        if (eol && entryMax > 0 && input.length >= entryMax) {
             beep();
             xvt.typeahead = '';
             return;
         }
-        if (xvt.echo)
+        if (echo)
             out(k0);
         input += k0;
         //  terminate entry if input size is met
-        if (!xvt.eol && input.length >= xvt.entryMax) {
+        if (!eol && input.length >= entryMax) {
             xvt.entry = input;
             xvt.terminator = k0;
             process.stdin.pause();

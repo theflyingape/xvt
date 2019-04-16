@@ -1,12 +1,13 @@
 /*****************************************************************************\
  *  XVT authored by: Robert Hurst <theflyingape@gmail.com>                   *
- *      an event-driven terminal session handler                             *
+ *      an asynchronous terminal session handler                             *
  *                                                                           *
  * - emulation interface: dumb, VT100, ANSI-PC, ANSI-UTF emulation           *
  * - user input interface: formatted and roll-and-scroll                     *
 \*****************************************************************************/
 import { Validator } from 'class-validator';
 declare module xvt {
+    type emulator = string | 'dumb' | 'VT' | 'PC' | 'XT';
     interface Field {
         cb: Function;
         row?: number;
@@ -17,6 +18,7 @@ declare module xvt {
         echo?: boolean;
         eol?: boolean;
         eraser?: string;
+        lines?: number;
         min?: number;
         max?: number;
         match?: RegExp;
@@ -29,8 +31,8 @@ declare module xvt {
     interface iField {
         [key: string]: Field;
     }
-    const validator: Validator;
     const romanize: any;
+    const validator: Validator;
     const cll = -2;
     const clear = -1;
     const reset = 0;
@@ -77,39 +79,21 @@ declare module xvt {
     const lMagenta = 105;
     const lCyan = 106;
     const lWhite = 107;
-    const LGradient: {
-        VT: string;
-        PC: string;
-        XT: string;
-        dumb: string;
-    };
-    const RGradient: {
-        VT: string;
-        PC: string;
-        XT: string;
-        dumb: string;
-    };
-    const Draw: {
-        VT: string[];
-        PC: string[];
-        XT: string[];
-        dumb: string[];
-    };
-    const Empty: {
-        VT: string;
-        PC: string;
-        XT: string;
-        dumb: string;
-    };
     class session {
-        constructor();
+        constructor(e?: emulator);
+        private _emulation;
         private _fields;
         private _focus;
+        emulation: emulator;
+        readonly LGradient: any;
+        readonly RGradient: any;
+        readonly Draw: any;
+        readonly Empty: any;
         form: iField;
         focus: string | number;
         nofocus(keep?: boolean): void;
         refocus(): void;
-        private _read();
+        private _read;
     }
     let carrier: boolean;
     let modem: boolean;
@@ -123,18 +107,7 @@ declare module xvt {
     let terminator: string;
     let typeahead: string;
     let entry: string;
-    let enter: string;
-    let cancel: string;
-    let echo: boolean;
-    let eol: boolean;
-    let entryMin: number;
-    let entryMax: number;
-    let eraser: string;
-    let defaultInputStyle: any;
-    let defaultPromptStyle: any;
-    let enq: boolean;
     let app: session;
-    let emulation: string;
     let color: number;
     let bold: boolean;
     let dim: boolean;

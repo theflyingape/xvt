@@ -1,6 +1,6 @@
 # xvt
 
-an event-driven terminal session handler from the app's shell
+an asynchronous terminal session handler from the app's shell
 
 ## Example
 
@@ -18,7 +18,7 @@ xvt.app.form = {
 xvt.app.focus = 'username'
 ```
 
-**class-validator** is loaded to assist with user input validation functions:
+`class-validator` is loaded to assist with user input validation functions:
 
 ```javascript
 function email() {
@@ -28,5 +28,22 @@ function email() {
     }
     else
         xvt.app.refocus()
+}
+```
+
+Terminal emulator conveniences:
+
+* `dumb` - plain ASCII
+* `VT` - VT220 monochrome 7-bit controls
+* `PC` - ANSI color typically used with IBM CP850 encoding
+* `XT` - ANSI color used with UTF-8 encoding
+
+```javascript
+const emulation = [ 'dumb', 'VT', 'PC', 'XT' ]
+for (let e in emulation) {
+    xvt.app.emulation = emulation[e]
+    xvt.outln(xvt.magenta, xvt.app.LGradient, xvt.reverse, emulation[e], ' BANNER', xvt.noreverse, xvt.app.RGradient)
+    xvt.out(xvt.red,'R', xvt.green,'G', xvt.blue,'B')
+    xvt.outln(xvt.reset,' - ',xvt.bright,'bold ',xvt.normal,'normal',xvt.faint,' dim')
 }
 ```

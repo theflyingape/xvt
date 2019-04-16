@@ -4,17 +4,22 @@ module module2
 {
 
 function start2() {
-	xvt.out('modem = ', xvt.modem, '\n')
+	xvt.outln('modem = ', xvt.modem)
 	xvt.app.focus = 'email'
 }
 
 function email() {
 	if (xvt.validator.isEmail(xvt.entry)) {
 		xvt.out('\nThat email address looks OK by me.')
-		xvt.app.focus = 2
+		xvt.app.focus = 'message'
 	}
 	else
 		xvt.app.refocus()
+}
+
+function message() {
+	xvt.out(xvt.entry)
+	xvt.app.focus = 2
 }
 
 function fight() {
@@ -23,7 +28,7 @@ function fight() {
 			xvt.out('ttack!')
 			break
 		case 'C':
-			xvt.out(' -- you think you\'re Harry Potter?')
+			xvt.out(` -- you think you're Harry Potter?`)
 			break
 		case 'R':
 			xvt.out('un away')
@@ -46,6 +51,7 @@ function logoff() {
 xvt.app.form = {
 	1: { cb:start2, pause:true },
 	'email': { cb:email, prompt:'E-mail: ' },
+	'message': { cb:message, lines:5, prompt:'Send a message' },
 	2: { cb:fight, prompt:'<A>ttack, <C>ast a spell, or <R>etreat: ', cancel:'r', enter:'a', eol:false, match:/A|C|R/i },
 	3: { cb:logoff, prompt:'Logoff (Yes/No)? ', cancel:'y', enter:'n', match:/Y|N/i, max:3, timeout:5 }
 }
