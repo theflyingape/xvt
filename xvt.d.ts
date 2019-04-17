@@ -13,20 +13,20 @@ declare module xvt {
         row?: number;
         col?: number;
         prompt?: string;
+        promptStyle?: any[];
+        inputStyle?: any[];
         cancel?: string;
         enter?: string;
-        echo?: boolean;
-        eol?: boolean;
         eraser?: string;
-        lines?: number;
         min?: number;
         max?: number;
         match?: RegExp;
+        echo?: boolean;
+        enq?: boolean;
+        eol?: boolean;
+        lines?: number;
         pause?: boolean;
         timeout?: number;
-        inputStyle?: any[];
-        promptStyle?: any[];
-        enq?: boolean;
     }
     interface iField {
         [key: string]: Field;

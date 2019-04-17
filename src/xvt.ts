@@ -17,20 +17,20 @@ export interface Field {
     row?: number
     col?: number
     prompt?: string
-    cancel?: string
-    enter?: string
+    promptStyle?: any[] //  attr() parameters for prompt
+    inputStyle?: any[]  //  attr() parameters for input
+    cancel?: string     //  return on ESC or timeout
+    enter?: string      //  return on empty input
+    eraser?: string     //  with echo, masking character to use
+    min?: number        //  minimum input size
+    max?: number        //  maximum input size
+    match?: RegExp      //  validate input
     echo?: boolean
-    eol?: boolean
-    eraser?: string
-    lines?: number
-    min?: number
-    max?: number
-    match?: RegExp
-    pause?: boolean
+    enq?: boolean       //  enquire terminal emulator characteristics
+    eol?: boolean       //  requires user to terminate input
+    lines?: number      //  multiple line entry
+    pause?: boolean     //  press any key to continue
     timeout?: number
-    inputStyle?: any[]
-    promptStyle?: any[]
-    enq?: boolean
 }
 
 export interface iField {
@@ -121,7 +121,7 @@ export class session {
     }
 
 
-//  ░ ▒ ▓ █ 
+//  ░ ▒ ▓ █
     get LGradient() {
         return {
             VT: '\x1B(0\x1B[2ma\x1B[ma\x1B[7m \x1B[1m \x1B[27m\x1B(B',
@@ -131,7 +131,7 @@ export class session {
         }[this._emulation]
     }
 
-//  █ ▓ ▒ ░ 
+//  █ ▓ ▒ ░
     get RGradient() {
         return {
             VT:'\x1B(0\x1B[1;7m \x1B[22m \x1B[ma\x1B[2ma\x1B[m\x1B(B',
@@ -151,7 +151,7 @@ export class session {
         }[this._emulation]
 }
 
-//  · 
+//  ·
     get Empty() {
         return {
             VT: '\x1B(0\x7E\x1B(B',
@@ -253,12 +253,8 @@ export class session {
         entryMax = validator.isDefined(p.max) ? p.max : (lines ? 72 : eol ? 0 : 1)
         eraser = validator.isDefined(p.eraser) ? p.eraser : ' '
 
-        if (row && col && echo && entryMax) {
-            for (let i = 0; i < entryMax; i++)
-                out(eraser)
-            for (let i = 0; i < entryMax; i++)
-                out('\x08')
-        }
+        if (row && col && echo && entryMax)
+            out(eraser.repeat(entryMax), '\b'.repeat(entryMax))
 
         await read()
         out(reset)
@@ -271,9 +267,8 @@ export class session {
         }
 
         while (lines && line < lines) {
-            line++
             outln()
-            if (entry.length) multi[line] = entry
+            if (entry.length) multi[line++] = entry
             if (entry.length && line < lines) {
                 out(bright, (line + 1).toString(), normal, '/', lines.toString(), faint, '] ', normal)
                 out(...p.inputStyle)
@@ -358,16 +353,15 @@ export async function read() {
             out(entry)
         }
         else {
-            beep()
             if (!carrier) {
-                outln(' ** your session expired ** ')
+                outln(off, ' ** ', bright, 'your session expired', off, ' ** ')
                 reason = 'got exhausted'
             }
             if (!retry) {
-                outln(' ** timeout ** ')
+                outln(off, ' ** ', faint, 'timeout', off, ' ** ')
                 reason = 'fallen asleep'
             }
-            waste(1000)
+            beep()
             hangup()
         }
         //return new Promise(reject => 'timeout')
@@ -586,9 +580,7 @@ export function plot(row: number, col: number) {
 }
 
 export function rubout(n = 1) {
-    if (echo)
-        for (let i = 0; i < n; i++)
-            out('\x08', eraser, '\x08')
+    if (echo) out(`\b${eraser}\b`.repeat(n))
 }
 
 //  signal & stdin event handlers
@@ -608,14 +600,14 @@ let lines: number = 0
 let multi: string[]
 
 process.on('SIGHUP', function () {
-    outln(off, faint, ' ** hangup ** ')
+    outln(off, ' ** ', faint, 'hangup', off, ' ** ')
     reason = 'hangup'
     carrier = false
     hangup()
 })
 
 process.on('SIGINT', function () {
-    outln(off, bright, ' ** interrupt ** ')
+    outln(off, ' ** ', bright, 'interrupt', off, ' ** ')
     reason = 'interrupted'
     carrier = false
     hangup()
@@ -645,15 +637,15 @@ process.stdin.on('data', function(key: Buffer) {
 
     //  ctrl-d or ctrl-z to disconnect the session
     if (k0 == '\x04' || k0 == '\x1A') {
-        outln(off, faint, ' ** disconnect ** ')
+        outln(off, ' ** disconnect ** ')
         reason = 'manual disconnect'
         hangup()
     }
 
     //if (validator.isEmpty(app.focus) && !echo) return
 
-    //  rubout
-    if (k0 == '\x08' || k0 == '\x7F') {
+    //  rubout / delete
+    if (k0 == '\b' || k0 == '\x7F') {
         if (eol && input.length > 0) {
             input = input.substr(0, input.length - 1)
             rubout()
@@ -707,7 +699,7 @@ process.stdin.on('data', function(key: Buffer) {
             return
         }
         //  let's cook for a special key event, if not prompting for a line of text
-        if (k0 === '\x1B') {
+        if (k0 == '\x1B') {
             rubout(input.length)
             switch (k.substr(1)) {
                 case '[A':
@@ -791,9 +783,24 @@ process.stdin.on('data', function(key: Buffer) {
         typeahead = k.substr(1)
 
     //  don't exceed maximum input allowed
-    if (eol && entryMax > 0 && input.length >= entryMax) {
+    if ((eol || lines) && entryMax > 0 && input.length >= entryMax) {
         beep()
-        typeahead = ''
+        if (lines && (line + 1) < lines) {
+            entry = input
+            terminator = k0
+            //  word-wrap if this entry will overflow into next line
+            if (k0 !== ' ') {
+                let i = input.lastIndexOf(' ')
+                if (i > 0) {
+                    rubout(input.substring(i).length)
+                    entry = input.substring(0, i)
+                    typeahead = input.substring(i + 1) + typeahead
+                }
+            }
+            process.stdin.pause()
+        }
+        else
+            typeahead = ''
         return
     }
 

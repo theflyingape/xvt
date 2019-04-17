@@ -92,7 +92,7 @@ var xvt;
             process.stdin.setEncoding(e == 'XT' ? 'utf8' : 'ascii');
             this._emulation = e;
         }
-        //  ░ ▒ ▓ █ 
+        //  ░ ▒ ▓ █
         get LGradient() {
             return {
                 VT: '\x1B(0\x1B[2ma\x1B[ma\x1B[7m \x1B[1m \x1B[27m\x1B(B',
@@ -101,7 +101,7 @@ var xvt;
                 dumb: ' :: '
             }[this._emulation];
         }
-        //  █ ▓ ▒ ░ 
+        //  █ ▓ ▒ ░
         get RGradient() {
             return {
                 VT: '\x1B(0\x1B[1;7m \x1B[22m \x1B[ma\x1B[2ma\x1B[m\x1B(B',
@@ -119,7 +119,7 @@ var xvt;
                 dumb: ['-', '+', '^', '+', '>', '+', '<', '+', 'v', '+', '|']
             }[this._emulation];
         }
-        //  · 
+        //  ·
         get Empty() {
             return {
                 VT: '\x1B(0\x7E\x1B(B',
@@ -210,12 +210,8 @@ var xvt;
                 entryMin = xvt.validator.isDefined(p.min) ? p.min : 0;
                 entryMax = xvt.validator.isDefined(p.max) ? p.max : (lines ? 72 : eol ? 0 : 1);
                 eraser = xvt.validator.isDefined(p.eraser) ? p.eraser : ' ';
-                if (row && col && echo && entryMax) {
-                    for (let i = 0; i < entryMax; i++)
-                        out(eraser);
-                    for (let i = 0; i < entryMax; i++)
-                        out('\x08');
-                }
+                if (row && col && echo && entryMax)
+                    out(eraser.repeat(entryMax), '\b'.repeat(entryMax));
                 yield read();
                 out(xvt.reset);
                 if (xvt.validator.isDefined(p.match)) {
@@ -225,10 +221,9 @@ var xvt;
                     }
                 }
                 while (lines && line < lines) {
-                    line++;
                     outln();
                     if (xvt.entry.length)
-                        multi[line] = xvt.entry;
+                        multi[line++] = xvt.entry;
                     if (xvt.entry.length && line < lines) {
                         out(xvt.bright, (line + 1).toString(), xvt.normal, '/', lines.toString(), xvt.faint, '] ', xvt.normal);
                         out(...p.inputStyle);
@@ -302,16 +297,15 @@ var xvt;
                     out(xvt.entry);
                 }
                 else {
-                    beep();
                     if (!xvt.carrier) {
-                        outln(' ** your session expired ** ');
+                        outln(xvt.off, ' ** ', xvt.bright, 'your session expired', xvt.off, ' ** ');
                         xvt.reason = 'got exhausted';
                     }
                     if (!retry) {
-                        outln(' ** timeout ** ');
+                        outln(xvt.off, ' ** ', xvt.faint, 'timeout', xvt.off, ' ** ');
                         xvt.reason = 'fallen asleep';
                     }
-                    waste(1000);
+                    beep();
                     hangup();
                 }
                 //return new Promise(reject => 'timeout')
@@ -538,8 +532,7 @@ var xvt;
     xvt.plot = plot;
     function rubout(n = 1) {
         if (echo)
-            for (let i = 0; i < n; i++)
-                out('\x08', eraser, '\x08');
+            out(`\b${eraser}\b`.repeat(n));
     }
     xvt.rubout = rubout;
     //  signal & stdin event handlers
@@ -558,13 +551,13 @@ var xvt;
     let lines = 0;
     let multi;
     process.on('SIGHUP', function () {
-        outln(xvt.off, xvt.faint, ' ** hangup ** ');
+        outln(xvt.off, ' ** ', xvt.faint, 'hangup', xvt.off, ' ** ');
         xvt.reason = 'hangup';
         xvt.carrier = false;
         hangup();
     });
     process.on('SIGINT', function () {
-        outln(xvt.off, xvt.bright, ' ** interrupt ** ');
+        outln(xvt.off, ' ** ', xvt.bright, 'interrupt', xvt.off, ' ** ');
         xvt.reason = 'interrupted';
         xvt.carrier = false;
         hangup();
@@ -591,13 +584,13 @@ var xvt;
         }
         //  ctrl-d or ctrl-z to disconnect the session
         if (k0 == '\x04' || k0 == '\x1A') {
-            outln(xvt.off, xvt.faint, ' ** disconnect ** ');
+            outln(xvt.off, ' ** disconnect ** ');
             xvt.reason = 'manual disconnect';
             hangup();
         }
         //if (validator.isEmpty(app.focus) && !echo) return
-        //  rubout
-        if (k0 == '\x08' || k0 == '\x7F') {
+        //  rubout / delete
+        if (k0 == '\b' || k0 == '\x7F') {
             if (eol && input.length > 0) {
                 input = input.substr(0, input.length - 1);
                 rubout();
@@ -650,7 +643,7 @@ var xvt;
                 return;
             }
             //  let's cook for a special key event, if not prompting for a line of text
-            if (k0 === '\x1B') {
+            if (k0 == '\x1B') {
                 rubout(input.length);
                 switch (k.substr(1)) {
                     case '[A':
@@ -732,9 +725,24 @@ var xvt;
         if (k.length > 1)
             xvt.typeahead = k.substr(1);
         //  don't exceed maximum input allowed
-        if (eol && entryMax > 0 && input.length >= entryMax) {
+        if ((eol || lines) && entryMax > 0 && input.length >= entryMax) {
             beep();
-            xvt.typeahead = '';
+            if (lines && (line + 1) < lines) {
+                xvt.entry = input;
+                xvt.terminator = k0;
+                //  word-wrap if this entry will overflow into next line
+                if (k0 !== ' ') {
+                    let i = input.lastIndexOf(' ');
+                    if (i > 0) {
+                        rubout(input.substring(i).length);
+                        xvt.entry = input.substring(0, i);
+                        xvt.typeahead = input.substring(i + 1) + xvt.typeahead;
+                    }
+                }
+                process.stdin.pause();
+            }
+            else
+                xvt.typeahead = '';
             return;
         }
         if (echo)
