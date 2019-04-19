@@ -295,6 +295,7 @@ export let modem = false
 export let ondrop: Function
 export let reason = ''
 
+export let defaultColor: number = white
 export let defaultTimeout: number = -1
 export let idleTimeout: number = 0
 export let pollingMS: number = 100
@@ -401,10 +402,13 @@ export function attr(...out): string {
                 case clear:
                     text('\x1B[H\x1B[J')
                     break
-                case off:
+                case off:   //  force reset
+                    color = defaultColor
                 case reset:
-                    if (data == off || color || bold || dim || ul || flash || rvs)
+                    if (color || bold || dim || ul || flash || rvs) {
+                        _SGR = ''
                         text('\x1B[m')
+                    }
                     color = 0
                     bold = false
                     dim = false
@@ -421,7 +425,7 @@ export function attr(...out): string {
                     if (! bold) {
                         SGR(bright.toString())
                         if (! color ) {
-                            color = white
+                            color = defaultColor
                             SGR(color.toString())
                         }
                     }
@@ -474,14 +478,11 @@ export function attr(...out): string {
                 default:
                     color = data
                     if (data >= black && data <= white || data >= lblack && data <= lwhite)
-                        if (app.emulation !== 'VT')
-                            SGR(data.toString())
+                        if (app.emulation !== 'VT') SGR(data.toString())
                     if (data >= Black && data <= White || data >= lBlack && data <= lWhite) {
-                        if (app.emulation !== 'VT')
-                            SGR(data.toString())
+                        if (app.emulation !== 'VT') SGR(data.toString())
                         else {
-                            if (! rvs)
-                                SGR(reverse.toString())
+                            if (! rvs) SGR(reverse.toString())
                             rvs = true
                         }
                     }

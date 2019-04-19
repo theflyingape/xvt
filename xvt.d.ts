@@ -99,6 +99,7 @@ declare module xvt {
     let modem: boolean;
     let ondrop: Function;
     let reason: string;
+    let defaultColor: number;
     let defaultTimeout: number;
     let idleTimeout: number;
     let pollingMS: number;

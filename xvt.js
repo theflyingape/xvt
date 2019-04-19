@@ -247,6 +247,7 @@ var xvt;
     xvt.carrier = false;
     xvt.modem = false;
     xvt.reason = '';
+    xvt.defaultColor = xvt.white;
     xvt.defaultTimeout = -1;
     xvt.idleTimeout = 0;
     xvt.pollingMS = 100;
@@ -344,10 +345,13 @@ var xvt;
                         case xvt.clear:
                             text('\x1B[H\x1B[J');
                             break;
-                        case xvt.off:
+                        case xvt.off: //  force reset
+                            xvt.color = xvt.defaultColor;
                         case xvt.reset:
-                            if (data == xvt.off || xvt.color || xvt.bold || xvt.dim || xvt.ul || xvt.flash || xvt.rvs)
+                            if (xvt.color || xvt.bold || xvt.dim || xvt.ul || xvt.flash || xvt.rvs) {
+                                _SGR = '';
                                 text('\x1B[m');
+                            }
                             xvt.color = 0;
                             xvt.bold = false;
                             xvt.dim = false;
@@ -364,7 +368,7 @@ var xvt;
                             if (!xvt.bold) {
                                 SGR(xvt.bright.toString());
                                 if (!xvt.color) {
-                                    xvt.color = xvt.white;
+                                    xvt.color = xvt.defaultColor;
                                     SGR(xvt.color.toString());
                                 }
                             }
