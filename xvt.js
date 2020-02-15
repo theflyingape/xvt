@@ -7,13 +7,15 @@
  * - user input interface: formatted and roll-and-scroll                     *
 \*****************************************************************************/
 var __awaiter = (this && this.__awaiter) || function (thisArg, _arguments, P, generator) {
+    function adopt(value) { return value instanceof P ? value : new P(function (resolve) { resolve(value); }); }
     return new (P || (P = Promise))(function (resolve, reject) {
         function fulfilled(value) { try { step(generator.next(value)); } catch (e) { reject(e); } }
         function rejected(value) { try { step(generator["throw"](value)); } catch (e) { reject(e); } }
-        function step(result) { result.done ? resolve(result.value) : new P(function (resolve) { resolve(result.value); }).then(fulfilled, rejected); }
+        function step(result) { result.done ? resolve(result.value) : adopt(result.value).then(fulfilled, rejected); }
         step((generator = generator.apply(thisArg, _arguments || [])).next());
     });
 };
+const spawn = require('child_process');
 const class_validator_1 = require("class-validator");
 var xvt;
 (function (xvt) {
@@ -21,7 +23,7 @@ var xvt;
     export interface Form {
         prompts: iField[]
     }
-    
+
     export interface iForm {
         [key: string]: Form
     }
@@ -250,7 +252,7 @@ var xvt;
     xvt.defaultColor = xvt.white;
     xvt.defaultTimeout = -1;
     xvt.idleTimeout = 0;
-    xvt.pollingMS = 100;
+    xvt.pollingMS = 50;
     xvt.sessionAllowed = 0;
     xvt.sessionStart = null;
     xvt.terminator = null;
@@ -267,24 +269,37 @@ var xvt;
     let _text = ''; //  buffer constructed emulation output(s)
     function read() {
         return __awaiter(this, void 0, void 0, function* () {
-            let retry = xvt.idleTimeout * (1000 / xvt.pollingMS) >> 0;
-            let warn = retry >> 1;
+            let between = xvt.pollingMS;
+            let elapsed = new Date().getTime() / 1000 >> 0;
+            let retry = elapsed + (xvt.idleTimeout >> 1);
+            let warn = true;
             xvt.entry = '';
             xvt.terminator = null;
             try {
                 process.stdin.resume();
                 while (xvt.carrier && retry && xvt.validator.isEmpty(xvt.terminator)) {
-                    if (xvt.typeahead)
+                    if (xvt.typeahead) {
                         process.stdin.emit('data', '');
-                    else
-                        yield wait(xvt.pollingMS);
-                    if (xvt.idleTimeout > 0 && --retry == warn)
-                        beep();
-                    if (xvt.sessionAllowed > 0 && !(retry % xvt.pollingMS)) {
-                        let elapsed = (new Date().getTime() - xvt.sessionStart.getTime()) / 1000;
-                        if (elapsed > xvt.sessionAllowed)
-                            xvt.carrier = false;
+                        between = xvt.pollingMS;
                     }
+                    else {
+                        yield wait(between);
+                        between = xvt.pollingMS * 10;
+                    }
+                    elapsed = new Date().getTime() / 1000 >> 0;
+                    if (xvt.idleTimeout > 0) {
+                        if (retry <= elapsed) {
+                            beep();
+                            if (warn) {
+                                retry = elapsed + (xvt.idleTimeout >> 1);
+                                warn = false;
+                            }
+                            else
+                                retry = 0;
+                        }
+                    }
+                    else if (xvt.sessionAllowed && (elapsed - (xvt.sessionStart.getTime() / 1000)) > xvt.sessionAllowed)
+                        xvt.carrier = false;
                 }
             }
             catch (err) {
@@ -299,11 +314,11 @@ var xvt;
                 }
                 else {
                     if (!xvt.carrier) {
-                        outln(xvt.off, ' ** ', xvt.bright, 'your session expired', xvt.off, ' ** ');
+                        process.stdout.write(attr(xvt.off, '\x07 ** ', xvt.bright, 'your session expired', xvt.off, ' ** \x07\r'));
                         xvt.reason = 'got exhausted';
                     }
-                    if (!retry) {
-                        outln(xvt.off, ' ** ', xvt.faint, 'timeout', xvt.off, ' ** ');
+                    else if (!retry) {
+                        outln(xvt.off, '\x07 ** ', xvt.faint, 'timeout', xvt.off, ' ** \r');
                         xvt.reason = 'fallen asleep';
                     }
                     beep();
@@ -329,8 +344,9 @@ var xvt;
     xvt.wait = wait;
     function waste(ms) {
         if (xvt.carrier) {
-            let start = new Date().getTime() + (ms);
-            while (new Date().getTime() <= start) { }
+            //let start = new Date().getTime() + (ms)
+            //while (new Date().getTime() <= start) {}
+            spawn.execSync(`sleep ${ms / 1000}`);
         }
     }
     xvt.waste = waste;
