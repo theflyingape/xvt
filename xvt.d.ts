@@ -33,8 +33,6 @@ declare module xvt {
     }
     const romanize: any;
     const validator: Validator;
-    const cll = -2;
-    const clear = -1;
     const reset = 0;
     const bright = 1;
     const faint = 2;
@@ -79,6 +77,8 @@ declare module xvt {
     const lMagenta = 105;
     const lCyan = 106;
     const lWhite = 107;
+    const cll = 254;
+    const clear = 255;
     class session {
         constructor(e?: emulator);
         private _emulation;
@@ -121,10 +121,10 @@ declare module xvt {
     function read(): Promise<void>;
     function wait(ms: number): Promise<unknown>;
     function waste(ms: number): void;
-    function attr(...out: any[]): string;
+    function attr(...params: any[]): string;
     function beep(): void;
     function hangup(): void;
-    function out(...out: any[]): void;
+    function out(...params: any[]): void;
     function outln(...params: any[]): void;
     function restore(): void;
     function save(): void;

@@ -1,6 +1,6 @@
 {
   "name": "xvt",
-  "version": "1.1.4",
+  "version": "1.1.5",
   "description": "an asynchronous terminal session handler",
   "main": "./xvt.js",
   "types": "./xvt.d.ts",
@@ -26,11 +26,9 @@
   "homepage": "https://robert.hurst-ri.us",
   "keywords": [
     "ansi",
-    "async",
     "cli",
-    "emulation",
+    "interactive",
     "terminal",
-    "typescript",
     "vt100"
   ],
   "author": "Robert Hurst",

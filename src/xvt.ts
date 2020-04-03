@@ -49,8 +49,6 @@ module xvt {
     export const romanize = require('romanize')
     export const validator = new Validator()
     //  SGR (https://en.wikipedia.org/wiki/ANSI_escape_code#SGR_.28Select_Graphic_Rendition.29_parameters)
-    export const cll = -2
-    export const clear = -1
     export const reset = 0   // all attributes off, default color
     export const bright = 1   // make brighter
     export const faint = 2   // make dimmer
@@ -95,6 +93,8 @@ module xvt {
     export const lMagenta = 105
     export const lCyan = 106
     export const lWhite = 107
+    export const cll = 254
+    export const clear = 255
 
     export class session {
 
@@ -410,10 +410,15 @@ module xvt {
         }
     }
 
-    export function attr(...out): string {
-        out.forEach(data => {
+    export function attr(...params): string {
+        let result = ''
+        params.forEach(data => {
             if (typeof data == 'number') {
-                if (data < -99) {
+                if (data < 0) {
+                    text()
+                    result = _text
+                    _text = ''
+                    out(result)
                     waste(-data)
                 }
                 else if (app.emulation !== 'dumb') {
@@ -520,7 +525,7 @@ module xvt {
         })
 
         text()
-        let result = _text
+        result = _text
         _text = ''
         return result
     }
@@ -546,10 +551,10 @@ module xvt {
         process.exit()
     }
 
-    export function out(...out) {
+    export function out(...params) {
         try {
             if (carrier)
-                process.stdout.write(attr(...out))
+                process.stdout.write(attr(...params))
         }
         catch (err) {
             carrier = false

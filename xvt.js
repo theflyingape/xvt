@@ -31,8 +31,6 @@ var xvt;
     xvt.romanize = require('romanize');
     xvt.validator = new class_validator_1.Validator();
     //  SGR (https://en.wikipedia.org/wiki/ANSI_escape_code#SGR_.28Select_Graphic_Rendition.29_parameters)
-    xvt.cll = -2;
-    xvt.clear = -1;
     xvt.reset = 0; // all attributes off, default color
     xvt.bright = 1; // make brighter
     xvt.faint = 2; // make dimmer
@@ -77,6 +75,8 @@ var xvt;
     xvt.lMagenta = 105;
     xvt.lCyan = 106;
     xvt.lWhite = 107;
+    xvt.cll = 254;
+    xvt.clear = 255;
     class session {
         constructor(e = 'XT') {
             xvt.carrier = true;
@@ -350,10 +350,15 @@ var xvt;
         }
     }
     xvt.waste = waste;
-    function attr(...out) {
-        out.forEach(data => {
+    function attr(...params) {
+        let result = '';
+        params.forEach(data => {
             if (typeof data == 'number') {
-                if (data < -99) {
+                if (data < 0) {
+                    text();
+                    result = _text;
+                    _text = '';
+                    out(result);
                     waste(-data);
                 }
                 else if (xvt.app.emulation !== 'dumb') {
@@ -469,7 +474,7 @@ var xvt;
                 text(data);
         });
         text();
-        let result = _text;
+        result = _text;
         _text = '';
         return result;
     }
@@ -499,10 +504,10 @@ var xvt;
         process.exit();
     }
     xvt.hangup = hangup;
-    function out(...out) {
+    function out(...params) {
         try {
             if (xvt.carrier)
-                process.stdout.write(attr(...out));
+                process.stdout.write(attr(...params));
         }
         catch (err) {
             xvt.carrier = false;
