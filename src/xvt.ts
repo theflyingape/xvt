@@ -413,7 +413,10 @@ module xvt {
     export function attr(...out): string {
         out.forEach(data => {
             if (typeof data == 'number') {
-                if (app.emulation !== 'dumb') {
+                if (data < -99) {
+                    waste(-data)
+                }
+                else if (app.emulation !== 'dumb') {
                     switch (data) {
                         case cll:
                             text('\x1B[K')

@@ -353,7 +353,10 @@ var xvt;
     function attr(...out) {
         out.forEach(data => {
             if (typeof data == 'number') {
-                if (xvt.app.emulation !== 'dumb') {
+                if (data < -99) {
+                    waste(-data);
+                }
+                else if (xvt.app.emulation !== 'dumb') {
                     switch (data) {
                         case xvt.cll:
                             text('\x1B[K');
