@@ -764,7 +764,7 @@ var xvt;
                     if (i > 0) {
                         rubout(input.substring(i).length);
                         xvt.entry = input.substring(0, i);
-                        xvt.typeahead = input.substring(i + 1) + xvt.typeahead;
+                        xvt.typeahead = input.substring(i + 1) + k0 + xvt.typeahead;
                     }
                 }
                 process.stdin.pause();

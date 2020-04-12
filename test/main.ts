@@ -1,5 +1,9 @@
 import xvt = require('../xvt')
 
+xvt.outln(xvt.magenta, xvt.app.LGradient, xvt.reverse, ' BANNER', xvt.noreverse, xvt.app.RGradient)
+xvt.out(xvt.red, 'R', xvt.green, 'G', xvt.blue, 'B')
+xvt.outln(xvt.reset, ' - ', xvt.bright, 'bold ', xvt.normal, 'normal ', xvt.blink, 'flash ', xvt.noblink, xvt.faint, 'dim')
+
 module main {
 
 	function login() {

@@ -44,6 +44,6 @@ for (let e in emulation) {
     xvt.app.emulation = emulation[e]
     xvt.outln(xvt.magenta, xvt.app.LGradient, xvt.reverse, emulation[e], ' BANNER', xvt.noreverse, xvt.app.RGradient)
     xvt.out(xvt.red,'R', xvt.green,'G', xvt.blue,'B')
-    xvt.outln(xvt.reset,' - ',xvt.bright,'bold ',xvt.normal,'normal',xvt.faint,' dim')
+    xvt.outln(xvt.reset,' - ',xvt.bright,'bold ',xvt.normal,'normal ',xvt.blink,'flash ',xvt.noblink,xvt.faint,'dim')
 }
 ```

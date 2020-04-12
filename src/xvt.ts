@@ -822,7 +822,7 @@ module xvt {
                     if (i > 0) {
                         rubout(input.substring(i).length)
                         entry = input.substring(0, i)
-                        typeahead = input.substring(i + 1) + typeahead
+                        typeahead = input.substring(i + 1) + k0 + typeahead
                     }
                 }
                 process.stdin.pause()
