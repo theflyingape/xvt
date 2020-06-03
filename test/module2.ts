@@ -1,4 +1,5 @@
 import xvt = require('../xvt')
+import { isEmail } from 'class-validator'
 
 module module2 {
 
@@ -8,7 +9,7 @@ module module2 {
 	}
 
 	function email() {
-		if (xvt.validator.isEmail(xvt.entry)) {
+		if (isEmail(xvt.entry)) {
 			xvt.out('\nThat email address looks OK by me.')
 			xvt.app.focus = 'message'
 		}

@@ -5,7 +5,6 @@
  * - emulation interface: dumb, VT100, ANSI-PC, ANSI-UTF emulation           *
  * - user input interface: formatted and roll-and-scroll                     *
 \*****************************************************************************/
-import { Validator } from 'class-validator';
 declare module xvt {
     type emulator = string | 'dumb' | 'VT' | 'PC' | 'XT';
     interface Field {
@@ -32,7 +31,6 @@ declare module xvt {
         [key: string]: Field;
     }
     const romanize: any;
-    const validator: Validator;
     const reset = 0;
     const bright = 1;
     const faint = 2;
@@ -102,10 +100,12 @@ declare module xvt {
     let modem: boolean;
     let ondrop: Function;
     let reason: string;
+    let col: number;
     let defaultColor: number;
     let defaultTimeout: number;
     let idleTimeout: number;
     let pollingMS: number;
+    let row: number;
     let sessionAllowed: number;
     let sessionStart: Date;
     let terminator: string;

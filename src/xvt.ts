@@ -7,7 +7,7 @@
 \*****************************************************************************/
 
 const spawn = require('child_process')
-import { Validator } from 'class-validator'
+import { isBoolean, isDefined, isEmpty, isNotEmpty, isString } from 'class-validator'
 
 module xvt {
 
@@ -47,7 +47,6 @@ module xvt {
     }
     */
     export const romanize = require('romanize')
-    export const validator = new Validator()
     //  SGR (https://en.wikipedia.org/wiki/ANSI_escape_code#SGR_.28Select_Graphic_Rendition.29_parameters)
     export const reset = 0   // all attributes off, default color
     export const bright = 1   // make brighter
@@ -174,7 +173,7 @@ module xvt {
 
         set focus(name: string | number) {
             let p = this._fields[name]
-            if (!validator.isDefined(p)) {
+            if (!isDefined(p)) {
                 beep()
                 outln(off, bright, '?ERROR in xvt.app.form :: field "', name, '" undefined')
                 this.refocus()
@@ -194,14 +193,14 @@ module xvt {
         }
 
         refocus() {
-            if (validator.isNotEmpty(this._focus)) this.focus = this.focus
+            if (isNotEmpty(this._focus)) this.focus = this.focus
         }
 
         private async _read() {
             let p = this._fields[this.focus]
 
-            cancel = validator.isDefined(p.cancel) ? p.cancel : ''
-            enter = validator.isDefined(p.enter) ? p.enter : ''
+            cancel = isDefined(p.cancel) ? p.cancel : ''
+            enter = isDefined(p.enter) ? p.enter : ''
 
             if (p.enq) {
                 enq = true
@@ -214,8 +213,8 @@ module xvt {
             }
 
             out(reset)
-            let row = validator.isDefined(p.row) ? p.row : 0
-            let col = validator.isDefined(p.col) ? p.col : 0
+            let row = isDefined(p.row) ? p.row : 0
+            let col = isDefined(p.col) ? p.col : 0
             if (row && col)
                 plot(row, col)  //  formatted screen
             else
@@ -224,18 +223,18 @@ module xvt {
             if (p.pause) {
                 echo = false
                 eol = false
-                if (!validator.isDefined(p.prompt)) p.prompt = '-pause-'
+                if (!isDefined(p.prompt)) p.prompt = '-pause-'
                 out('\r', reverse, p.prompt, reset)
             }
             else {
-                echo = validator.isDefined(p.echo) ? p.echo : true
-                eol = validator.isDefined(p.eol) ? p.eol : true
+                echo = isDefined(p.echo) ? p.echo : true
+                eol = isDefined(p.eol) ? p.eol : true
 
-                if (!validator.isDefined(p.promptStyle)) p.promptStyle = defaultPromptStyle
+                if (!isDefined(p.promptStyle)) p.promptStyle = defaultPromptStyle
                 out(...p.promptStyle)
-                if (validator.isDefined(p.prompt)) out(p.prompt)
+                if (isDefined(p.prompt)) out(p.prompt)
 
-                lines = validator.isDefined(p.lines) ? p.lines : 0
+                lines = isDefined(p.lines) ? p.lines : 0
                 if (lines) {
                     line = 0
                     outln()
@@ -243,16 +242,16 @@ module xvt {
                     multi = []
                 }
 
-                if (!validator.isDefined(p.inputStyle)) p.inputStyle = defaultInputStyle
+                if (!isDefined(p.inputStyle)) p.inputStyle = defaultInputStyle
                 out(...p.inputStyle)
             }
 
             if (!eol && !enter.length) enter = ' '
 
-            idleTimeout = validator.isDefined(p.timeout) ? p.timeout : defaultTimeout
-            entryMin = validator.isDefined(p.min) ? p.min : 0
-            entryMax = validator.isDefined(p.max) ? p.max : (lines ? 72 : eol ? 0 : 1)
-            eraser = validator.isDefined(p.eraser) ? p.eraser : ' '
+            idleTimeout = isDefined(p.timeout) ? p.timeout : defaultTimeout
+            entryMin = isDefined(p.min) ? p.min : 0
+            entryMax = isDefined(p.max) ? p.max : (lines ? 72 : eol ? 0 : 1)
+            eraser = isDefined(p.eraser) ? p.eraser : ' '
 
             if (row && col && echo && entryMax)
                 out(eraser.repeat(entryMax), '\b'.repeat(entryMax))
@@ -260,7 +259,7 @@ module xvt {
             await read()
             out(reset)
 
-            if (validator.isDefined(p.match)) {
+            if (isDefined(p.match)) {
                 if (!p.match.test(entry)) {
                     this.refocus()
                     return
@@ -282,7 +281,7 @@ module xvt {
                 }
             }
 
-            if (validator.isBoolean(p.pause)) {
+            if (isBoolean(p.pause)) {
                 echo = true
                 out('\r', cll)
             }
@@ -296,10 +295,12 @@ module xvt {
     export let ondrop: Function
     export let reason = ''
 
+    export let col: number = 0
     export let defaultColor: number = white
     export let defaultTimeout: number = -1
     export let idleTimeout: number = 0
     export let pollingMS: number = 50
+    export let row: number = 0
     export let sessionAllowed: number = 0
     export let sessionStart: Date = null
     export let terminator: string = null
@@ -335,7 +336,7 @@ module xvt {
 
         try {
             process.stdin.resume()
-            while (carrier && retry && validator.isEmpty(terminator)) {
+            while (carrier && retry && isEmpty(terminator)) {
                 if (typeahead) {
                     process.stdin.emit('data', '')
                     between = pollingMS
@@ -428,6 +429,8 @@ module xvt {
                             break
                         case clear:
                             text('\x1B[H\x1B[J')
+                            row = 1
+                            col = 1
                             break
                         case off:   //  force reset
                             color = defaultColor
@@ -517,11 +520,22 @@ module xvt {
                     }
                 }
                 else
-                    if (data == clear)
+                    if (data == clear) {
                         text('\f')
+                        row = 1
+                        col = 1
+                    }
             }
-            else
+            else {
                 text(data)
+                let lines = isString(data) ? data.split('\n') : []
+                if (lines.length > 1) {
+                    row += lines.length - 1
+                    col += lines[lines.length - 1].length
+                }
+                else
+                    col += data.length
+            }
         })
 
         text()
@@ -605,10 +619,15 @@ module xvt {
 
     export function plot(row: number, col: number) {
         out('\x1B[', row.toString(), ';', col.toString(), 'H')
+        xvt.row = row
+        xvt.col = col
     }
 
     export function rubout(n = 1) {
-        if (echo) out(`\b${eraser}\b`.repeat(n))
+        if (echo) {
+            out(`\b${eraser}\b`.repeat(n))
+            xvt.col -= n
+        }
     }
 
     //  signal & stdin event handlers

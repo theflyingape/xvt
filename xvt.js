@@ -29,7 +29,6 @@ var xvt;
     }
     */
     xvt.romanize = require('romanize');
-    xvt.validator = new class_validator_1.Validator();
     //  SGR (https://en.wikipedia.org/wiki/ANSI_escape_code#SGR_.28Select_Graphic_Rendition.29_parameters)
     xvt.reset = 0; // all attributes off, default color
     xvt.bright = 1; // make brighter
@@ -139,7 +138,7 @@ var xvt;
         get focus() { return this._focus; }
         set focus(name) {
             let p = this._fields[name];
-            if (!xvt.validator.isDefined(p)) {
+            if (!class_validator_1.isDefined(p)) {
                 beep();
                 outln(xvt.off, xvt.bright, '?ERROR in xvt.app.form :: field "', name, '" undefined');
                 this.refocus();
@@ -156,14 +155,14 @@ var xvt;
             this._focus = null;
         }
         refocus() {
-            if (xvt.validator.isNotEmpty(this._focus))
+            if (class_validator_1.isNotEmpty(this._focus))
                 this.focus = this.focus;
         }
         _read() {
             return __awaiter(this, void 0, void 0, function* () {
                 let p = this._fields[this.focus];
-                cancel = xvt.validator.isDefined(p.cancel) ? p.cancel : '';
-                enter = xvt.validator.isDefined(p.enter) ? p.enter : '';
+                cancel = class_validator_1.isDefined(p.cancel) ? p.cancel : '';
+                enter = class_validator_1.isDefined(p.enter) ? p.enter : '';
                 if (p.enq) {
                     enq = true;
                     out(p.prompt);
@@ -174,8 +173,8 @@ var xvt;
                     return;
                 }
                 out(xvt.reset);
-                let row = xvt.validator.isDefined(p.row) ? p.row : 0;
-                let col = xvt.validator.isDefined(p.col) ? p.col : 0;
+                let row = class_validator_1.isDefined(p.row) ? p.row : 0;
+                let col = class_validator_1.isDefined(p.col) ? p.col : 0;
                 if (row && col)
                     plot(row, col); //  formatted screen
                 else
@@ -183,40 +182,40 @@ var xvt;
                 if (p.pause) {
                     echo = false;
                     eol = false;
-                    if (!xvt.validator.isDefined(p.prompt))
+                    if (!class_validator_1.isDefined(p.prompt))
                         p.prompt = '-pause-';
                     out('\r', xvt.reverse, p.prompt, xvt.reset);
                 }
                 else {
-                    echo = xvt.validator.isDefined(p.echo) ? p.echo : true;
-                    eol = xvt.validator.isDefined(p.eol) ? p.eol : true;
-                    if (!xvt.validator.isDefined(p.promptStyle))
+                    echo = class_validator_1.isDefined(p.echo) ? p.echo : true;
+                    eol = class_validator_1.isDefined(p.eol) ? p.eol : true;
+                    if (!class_validator_1.isDefined(p.promptStyle))
                         p.promptStyle = defaultPromptStyle;
                     out(...p.promptStyle);
-                    if (xvt.validator.isDefined(p.prompt))
+                    if (class_validator_1.isDefined(p.prompt))
                         out(p.prompt);
-                    lines = xvt.validator.isDefined(p.lines) ? p.lines : 0;
+                    lines = class_validator_1.isDefined(p.lines) ? p.lines : 0;
                     if (lines) {
                         line = 0;
                         outln();
                         out(xvt.bright, (line + 1).toString(), xvt.normal, '/', lines.toString(), xvt.faint, '] ', xvt.normal);
                         multi = [];
                     }
-                    if (!xvt.validator.isDefined(p.inputStyle))
+                    if (!class_validator_1.isDefined(p.inputStyle))
                         p.inputStyle = defaultInputStyle;
                     out(...p.inputStyle);
                 }
                 if (!eol && !enter.length)
                     enter = ' ';
-                xvt.idleTimeout = xvt.validator.isDefined(p.timeout) ? p.timeout : xvt.defaultTimeout;
-                entryMin = xvt.validator.isDefined(p.min) ? p.min : 0;
-                entryMax = xvt.validator.isDefined(p.max) ? p.max : (lines ? 72 : eol ? 0 : 1);
-                eraser = xvt.validator.isDefined(p.eraser) ? p.eraser : ' ';
+                xvt.idleTimeout = class_validator_1.isDefined(p.timeout) ? p.timeout : xvt.defaultTimeout;
+                entryMin = class_validator_1.isDefined(p.min) ? p.min : 0;
+                entryMax = class_validator_1.isDefined(p.max) ? p.max : (lines ? 72 : eol ? 0 : 1);
+                eraser = class_validator_1.isDefined(p.eraser) ? p.eraser : ' ';
                 if (row && col && echo && entryMax)
                     out(eraser.repeat(entryMax), '\b'.repeat(entryMax));
                 yield read();
                 out(xvt.reset);
-                if (xvt.validator.isDefined(p.match)) {
+                if (class_validator_1.isDefined(p.match)) {
                     if (!p.match.test(xvt.entry)) {
                         this.refocus();
                         return;
@@ -237,7 +236,7 @@ var xvt;
                         lines = 0;
                     }
                 }
-                if (xvt.validator.isBoolean(p.pause)) {
+                if (class_validator_1.isBoolean(p.pause)) {
                     echo = true;
                     out('\r', xvt.cll);
                 }
@@ -249,10 +248,12 @@ var xvt;
     xvt.carrier = false;
     xvt.modem = false;
     xvt.reason = '';
+    xvt.col = 0;
     xvt.defaultColor = xvt.white;
     xvt.defaultTimeout = -1;
     xvt.idleTimeout = 0;
     xvt.pollingMS = 50;
+    xvt.row = 0;
     xvt.sessionAllowed = 0;
     xvt.sessionStart = null;
     xvt.terminator = null;
@@ -277,7 +278,7 @@ var xvt;
             xvt.terminator = null;
             try {
                 process.stdin.resume();
-                while (xvt.carrier && retry && xvt.validator.isEmpty(xvt.terminator)) {
+                while (xvt.carrier && retry && class_validator_1.isEmpty(xvt.terminator)) {
                     if (xvt.typeahead) {
                         process.stdin.emit('data', '');
                         between = xvt.pollingMS;
@@ -368,6 +369,8 @@ var xvt;
                             break;
                         case xvt.clear:
                             text('\x1B[H\x1B[J');
+                            xvt.row = 1;
+                            xvt.col = 1;
                             break;
                         case xvt.off: //  force reset
                             xvt.color = xvt.defaultColor;
@@ -467,11 +470,22 @@ var xvt;
                             break;
                     }
                 }
-                else if (data == xvt.clear)
+                else if (data == xvt.clear) {
                     text('\f');
+                    xvt.row = 1;
+                    xvt.col = 1;
+                }
             }
-            else
+            else {
                 text(data);
+                let lines = class_validator_1.isString(data) ? data.split('\n') : [];
+                if (lines.length > 1) {
+                    xvt.row += lines.length - 1;
+                    xvt.col += lines[lines.length - 1].length;
+                }
+                else
+                    xvt.col += data.length;
+            }
         });
         text();
         result = _text;
@@ -556,11 +570,15 @@ var xvt;
     }
     function plot(row, col) {
         out('\x1B[', row.toString(), ';', col.toString(), 'H');
+        xvt.row = row;
+        xvt.col = col;
     }
     xvt.plot = plot;
     function rubout(n = 1) {
-        if (echo)
+        if (echo) {
             out(`\b${eraser}\b`.repeat(n));
+            xvt.col -= n;
+        }
     }
     xvt.rubout = rubout;
     //  signal & stdin event handlers
