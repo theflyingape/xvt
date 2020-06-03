@@ -248,23 +248,26 @@ var xvt;
     xvt.carrier = false;
     xvt.modem = false;
     xvt.reason = '';
-    xvt.col = 0;
     xvt.defaultColor = xvt.white;
     xvt.defaultTimeout = -1;
     xvt.idleTimeout = 0;
     xvt.pollingMS = 50;
-    xvt.row = 0;
     xvt.sessionAllowed = 0;
     xvt.sessionStart = null;
     xvt.terminator = null;
     xvt.typeahead = '';
     xvt.entry = '';
     xvt.app = new session();
+    //  SGR registers
+    xvt.col = 0;
+    xvt.row = 0;
+    let _col = 0;
     let _color = 0;
     let _bold = false;
     let _dim = false;
     let _ul = false;
     let _flash = false;
+    let _row = 0;
     let _rvs = false;
     let _SGR = ''; //  Select Graphic Rendition
     let _text = ''; //  buffer constructed emulation output(s)
@@ -481,10 +484,8 @@ var xvt;
                 let lines = class_validator_1.isString(data) ? data.split('\n') : [];
                 if (lines.length > 1) {
                     xvt.row += lines.length - 1;
-                    xvt.col += lines[lines.length - 1].length;
+                    xvt.col = lines[lines.length - 1].length + 1;
                 }
-                else
-                    xvt.col += data.length;
             }
         });
         text();
@@ -534,22 +535,26 @@ var xvt;
     xvt.outln = outln;
     function restore() {
         out(xvt.app.emulation == 'XT' ? '\x1B[u' : '\x1B8');
+        xvt.col = _col;
         xvt.color = _color;
         xvt.bold = _bold;
         xvt.dim = _dim;
         xvt.ul = _ul;
         xvt.flash = _flash;
+        xvt.row = _row;
         xvt.rvs = _rvs;
     }
     xvt.restore = restore;
     function save() {
+        out(xvt.app.emulation == 'XT' ? '\x1B[s' : '\x1B7');
+        _col = xvt.col;
         _color = xvt.color;
         _bold = xvt.bold;
         _dim = xvt.dim;
         _ul = xvt.ul;
         _flash = xvt.flash;
+        _row = xvt.row;
         _rvs = xvt.rvs;
-        out(xvt.app.emulation == 'XT' ? '\x1B[s' : '\x1B7');
     }
     xvt.save = save;
     function SGR(attr) {
@@ -567,6 +572,7 @@ var xvt;
             _SGR = '';
         }
         _text += s;
+        xvt.col += s.length;
     }
     function plot(row, col) {
         out('\x1B[', row.toString(), ';', col.toString(), 'H');

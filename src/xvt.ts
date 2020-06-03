@@ -295,12 +295,10 @@ module xvt {
     export let ondrop: Function
     export let reason = ''
 
-    export let col: number = 0
     export let defaultColor: number = white
     export let defaultTimeout: number = -1
     export let idleTimeout: number = 0
     export let pollingMS: number = 50
-    export let row: number = 0
     export let sessionAllowed: number = 0
     export let sessionStart: Date = null
     export let terminator: string = null
@@ -310,18 +308,22 @@ module xvt {
     export let app = new session()
 
     //  SGR registers
+    export let col: number = 0
     export let color: number
     export let bold: boolean
     export let dim: boolean
     export let ul: boolean
     export let flash: boolean
+    export let row: number = 0
     export let rvs: boolean
 
+    let _col: number = 0
     let _color: number = 0
     let _bold: boolean = false
     let _dim: boolean = false
     let _ul: boolean = false
     let _flash: boolean = false
+    let _row: number = 0
     let _rvs: boolean = false
     let _SGR: string = ''   //  Select Graphic Rendition
     let _text: string = ''  //  buffer constructed emulation output(s)
@@ -531,10 +533,8 @@ module xvt {
                 let lines = isString(data) ? data.split('\n') : []
                 if (lines.length > 1) {
                     row += lines.length - 1
-                    col += lines[lines.length - 1].length
+                    col = lines[lines.length - 1].length + 1
                 }
-                else
-                    col += data.length
             }
         })
 
@@ -581,22 +581,26 @@ module xvt {
 
     export function restore() {
         out(app.emulation == 'XT' ? '\x1B[u' : '\x1B8')
+        col = _col
         color = _color
         bold = _bold
         dim = _dim
         ul = _ul
         flash = _flash
+        row = _row
         rvs = _rvs
     }
 
     export function save() {
+        out(app.emulation == 'XT' ? '\x1B[s' : '\x1B7')
+        _col = col
         _color = color
         _bold = bold
         _dim = dim
         _ul = ul
         _flash = flash
+        _row = row
         _rvs = rvs
-        out(app.emulation == 'XT' ? '\x1B[s' : '\x1B7')
     }
 
     function SGR(attr: string) {
@@ -615,6 +619,7 @@ module xvt {
             _SGR = ''
         }
         _text += s
+        col += s.length
     }
 
     export function plot(row: number, col: number) {
@@ -626,7 +631,7 @@ module xvt {
     export function rubout(n = 1) {
         if (echo) {
             out(`\b${eraser}\b`.repeat(n))
-            xvt.col -= n
+            col -= n
         }
     }
 
