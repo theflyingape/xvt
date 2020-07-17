@@ -1,10 +1,3 @@
-/*****************************************************************************\
- *  XVT authored by: Robert Hurst <theflyingape@gmail.com>                   *
- *      an asynchronous terminal session handler                             *
- *                                                                           *
- * - emulation interface: dumb, VT100, ANSI-PC, ANSI-UTF emulation           *
- * - user input interface: formatted and roll-and-scroll                     *
-\*****************************************************************************/
 declare module xvt {
     type emulator = string | 'dumb' | 'VT' | 'PC' | 'XT';
     interface Field {
@@ -123,6 +116,7 @@ declare module xvt {
     function waste(ms: number): void;
     function attr(...params: any[]): string;
     function beep(): void;
+    function drain(): void;
     function hangup(): void;
     function out(...params: any[]): void;
     function outln(...params: any[]): void;

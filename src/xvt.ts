@@ -8,6 +8,7 @@
 
 const spawn = require('child_process')
 import { isBoolean, isDefined, isEmpty, isNotEmpty, isString } from 'class-validator'
+import { type } from 'os'
 
 module xvt {
 
@@ -48,19 +49,19 @@ module xvt {
     */
     export const romanize = require('romanize')
     //  SGR (https://en.wikipedia.org/wiki/ANSI_escape_code#SGR_.28Select_Graphic_Rendition.29_parameters)
-    export const reset = 0   // all attributes off, default color
-    export const bright = 1   // make brighter
-    export const faint = 2   // make dimmer
+    export const reset = 0      // all attributes off, default color
+    export const bright = 1     // make brighter
+    export const faint = 2      // make dimmer
     export const uline = 4
-    export const blink = 5   //  not widely supported, unfortunately
+    export const blink = 5      //  not widely supported, unfortunately
     export const reverse = 7
-    export const off = 20   //  turn any attribute on -> off, except color
-    export const nobright = 21   //  not widely supported: cancels bold only
-    export const normal = 22   //  cancels bold (really?) and faint
+    export const off = 20       //  turn any attribute on -> off, except color
+    export const nobright = 21  //  not widely supported: cancels bold only
+    export const normal = 22    //  cancels bold (really?) and faint
     export const nouline = 24
     export const noblink = 25
     export const noreverse = 27
-    export const black = 30   //  foreground colors
+    export const black = 30     //  foreground colors
     export const red = 31
     export const green = 32
     export const yellow = 33
@@ -68,7 +69,7 @@ module xvt {
     export const magenta = 35
     export const cyan = 36
     export const white = 37
-    export const Black = 40   //  background colors
+    export const Black = 40     //  background colors
     export const Red = 41
     export const Green = 42
     export const Yellow = 43
@@ -76,7 +77,7 @@ module xvt {
     export const Magenta = 45
     export const Cyan = 46
     export const White = 47
-    export const lblack = 90   //  lighter foreground colors
+    export const lblack = 90    //  lighter foreground colors
     export const lred = 91
     export const lgreen = 92
     export const lyellow = 93
@@ -99,8 +100,8 @@ module xvt {
 
         constructor(e: emulator = 'XT') {
             carrier = true
-            //      const tty = require('tty')
-            //      if (tty.isatty(0)) tty.ReadStream(0).setRawMode(true)
+            //const tty = require('tty')
+            //if (tty.isatty(0)) tty.ReadStream(0).setRawMode(true)
             if (process.stdin.isTTY) process.stdin.setRawMode(true)
             this.emulation = e
             sessionStart = new Date()
@@ -225,6 +226,7 @@ module xvt {
                 eol = false
                 if (!isDefined(p.prompt)) p.prompt = '-pause-'
                 out('\r', reverse, p.prompt, reset)
+                drain()
             }
             else {
                 echo = isDefined(p.echo) ? p.echo : true
@@ -329,7 +331,7 @@ module xvt {
     let _text: string = ''  //  buffer constructed emulation output(s)
 
     export async function read() {
-        let between = pollingMS
+        let between = 0
         let elapsed = new Date().getTime() / 1000 >> 0
         let retry = elapsed + (idleTimeout >> 1)
         let warn = true
@@ -339,13 +341,15 @@ module xvt {
         try {
             process.stdin.resume()
             while (carrier && retry && isEmpty(terminator)) {
-                if (typeahead) {
+                if (typeahead)
                     process.stdin.emit('data', '')
-                    between = pollingMS
-                }
                 else {
-                    await wait(between)
-                    between = pollingMS * 10
+                    if (between) {
+                        await wait(between)
+                        between = pollingMS * 10
+                    }
+                    else
+                        between = pollingMS
                 }
                 elapsed = new Date().getTime() / 1000 >> 0
                 if (idleTimeout > 0) {
@@ -376,11 +380,11 @@ module xvt {
             }
             else {
                 if (!carrier) {
-                    process.stdout.write(attr(off, '\x07 ** ', bright, 'your session expired', off, ' ** \x07\r'))
+                    process.stdout.write(attr(off, ' ** ', bright, 'your session expired', off, ' ** \r'))
                     reason = 'got exhausted'
                 }
                 else if (!retry) {
-                    outln(off, '\x07 ** ', faint, 'timeout', off, ' ** \r')
+                    outln(off, ' ** ', faint, 'timeout', off, ' ** \r')
                     reason = 'fallen asleep'
                 }
                 beep()
@@ -548,6 +552,11 @@ module xvt {
         out('\x07')
     }
 
+    export function drain() {
+        input = ''
+        typeahead = ''
+    }
+
     export function hangup() {
         if (ondrop) ondrop()
         ondrop = null
@@ -694,8 +703,6 @@ module xvt {
             hangup()
         }
 
-        //if (validator.isEmpty(app.focus) && !echo) return
-
         //  rubout / delete
         if (k0 == '\b' || k0 == '\x7F') {
             if (eol && input.length > 0) {
@@ -753,19 +760,27 @@ module xvt {
             //  let's cook for a special key event, if not prompting for a line of text
             if (k0 == '\x1B') {
                 rubout(input.length)
-                switch (k.substr(1)) {
-                    case '[A':
-                        k = '[UP]'
-                        break
-                    case '[B':
-                        k = '[DOWN]'
-                        break
-                    case '[C':
-                        k = '[RIGHT]'
-                        break
-                    case '[D':
-                        k = '[LEFT]'
-                        break
+                if (k.startsWith('\x1B[A')) {
+                    typeahead = k.substr(3)
+                    k = '[UP]'
+                }
+                else if (k.startsWith('\x1B[B')) {
+                    typeahead = k.substr(3)
+                    k = '[DOWN]'
+                }
+                else if (k.startsWith('\x1B[C')) {
+                    typeahead = k.substr(3)
+                    k = '[RIGHT]'
+                }
+                else if (k.startsWith('\x1B[D')) {
+                    typeahead = k.substr(3)
+                    k = '[LEFT]'
+                }
+                else if (k.startsWith('\x1B[3~')) {
+                    typeahead = k.substr(4)
+                    k = '[DEL]'
+                }
+                else switch (k.substr(1)) {
                     case 'OP':
                     case '[11~':
                         k = '[F1]'
@@ -815,16 +830,14 @@ module xvt {
                     case '[2~':
                         k = '[INS]'
                         break
-                    case '[3~':
-                        k = '[DEL]'
-                        break
                     default:
+                        typeahead = k.substr(1)
                         k = '[ESC]'
                         break
                 }
             }
             else
-                k = '^' + String.fromCharCode(64 + k.charCodeAt(0))
+                k = '^' + k0
             entry = input
             terminator = k
             process.stdin.pause()

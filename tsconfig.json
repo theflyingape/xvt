@@ -4,12 +4,13 @@
     "module": "commonjs",
     "moduleResolution": "node",
     "declaration": true,
-    "outDir": "."
+    "outDir": ".",
+    "removeComments": true,
+    "preserveConstEnums": true,
+    "sourceMap": true
   },
   "exclude": [
 	  "node_modules",
-	  "typings/browser", 
-	  "typings/browser.d.ts" 
   ],
   "include": [
 	  "src/*"
