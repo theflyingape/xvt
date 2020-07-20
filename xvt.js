@@ -131,7 +131,9 @@ var xvt;
             eol = false;
             this._focus = null;
         }
-        refocus() {
+        refocus(prompt) {
+            if (class_validator_1.isDefined(prompt))
+                this._fields[this.focus].prompt = prompt;
             if (class_validator_1.isNotEmpty(this._focus))
                 this.focus = this.focus;
         }

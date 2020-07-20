@@ -86,7 +86,7 @@ declare module xvt {
         get focus(): string | number;
         set focus(name: string | number);
         nofocus(keep?: boolean): void;
-        refocus(): void;
+        refocus(prompt?: string): void;
         private _read;
     }
     let carrier: boolean;

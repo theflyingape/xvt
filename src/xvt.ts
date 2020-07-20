@@ -193,7 +193,8 @@ module xvt {
             this._focus = null
         }
 
-        refocus() {
+        refocus(prompt?: string) {
+            if (isDefined(prompt)) this._fields[this.focus].prompt = prompt
             if (isNotEmpty(this._focus)) this.focus = this.focus
         }
 
