@@ -28,6 +28,7 @@ module main {
 		'enq': {
 			cb: () => {
 				console.log('ENQ response =', xvt.entry.split('').map((c) => { return c.charCodeAt(0) }))
+				xvt.waste(2000)
 				xvt.app.focus = 'pause'
 			}, prompt: '\x1B[6n', enq: true
 		},

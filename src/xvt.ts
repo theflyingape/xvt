@@ -227,7 +227,7 @@ module xvt {
                 eol = false
                 if (!isDefined(p.prompt)) p.prompt = '-pause-'
                 out('\r', reverse, p.prompt, reset)
-                drain()
+                abort = true
             }
             else {
                 echo = isDefined(p.echo) ? p.echo : true
@@ -264,6 +264,7 @@ module xvt {
 
             if (isDefined(p.match)) {
                 if (!p.match.test(entry)) {
+                    abort = true
                     this.refocus()
                     return
                 }
@@ -331,6 +332,9 @@ module xvt {
     let _SGR: string = ''   //  Select Graphic Rendition
     let _text: string = ''  //  buffer constructed emulation output(s)
 
+    //  drain any input typeahead
+    let abort = false
+
     export async function read() {
         let between = 0
         let elapsed = new Date().getTime() / 1000 >> 0
@@ -339,19 +343,16 @@ module xvt {
         entry = ''
         terminator = null
 
+        if (process.stdin.isPaused) process.stdin.resume()
+
         try {
-            process.stdin.resume()
             while (carrier && retry && isEmpty(terminator)) {
-                if (typeahead)
-                    process.stdin.emit('data', '')
-                else {
-                    if (between) {
-                        await wait(between)
-                        between = pollingMS * 10
-                    }
-                    else
-                        between = pollingMS
+                if (between) {
+                    await wait(between)
+                    between = pollingMS * 10
                 }
+                else
+                    between = pollingMS
                 elapsed = new Date().getTime() / 1000 >> 0
                 if (idleTimeout > 0) {
                     if (retry <= elapsed) {
@@ -554,8 +555,7 @@ module xvt {
     }
 
     export function drain() {
-        input = ''
-        typeahead = ''
+        abort = true
     }
 
     export function hangup() {
@@ -676,7 +676,7 @@ module xvt {
     })
 
     //  capture VT user input
-    process.stdin.on('data', function (key: Buffer) {
+    process.stdin.on('data', (key: Buffer) => {
         let k: string
         let k0: string
         try {
@@ -879,6 +879,16 @@ module xvt {
             terminator = k0
             process.stdin.pause()
         }
+    })
+
+    process.stdin.on('resume', () => {
+        //  abort any input pending
+        if (abort) {
+            abort = false
+            typeahead = ''
+        }
+        if (typeahead)
+            process.stdin.emit('data', '')
     })
 
 }

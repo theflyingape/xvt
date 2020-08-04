@@ -164,7 +164,7 @@ var xvt;
                     if (!class_validator_1.isDefined(p.prompt))
                         p.prompt = '-pause-';
                     out('\r', xvt.reverse, p.prompt, xvt.reset);
-                    drain();
+                    abort = true;
                 }
                 else {
                     echo = class_validator_1.isDefined(p.echo) ? p.echo : true;
@@ -197,6 +197,7 @@ var xvt;
                 out(xvt.reset);
                 if (class_validator_1.isDefined(p.match)) {
                     if (!p.match.test(xvt.entry)) {
+                        abort = true;
                         this.refocus();
                         return;
                     }
@@ -250,6 +251,7 @@ var xvt;
     let _rvs = false;
     let _SGR = '';
     let _text = '';
+    let abort = false;
     function read() {
         return __awaiter(this, void 0, void 0, function* () {
             let between = 0;
@@ -258,19 +260,16 @@ var xvt;
             let warn = true;
             xvt.entry = '';
             xvt.terminator = null;
-            try {
+            if (process.stdin.isPaused)
                 process.stdin.resume();
+            try {
                 while (xvt.carrier && retry && class_validator_1.isEmpty(xvt.terminator)) {
-                    if (xvt.typeahead)
-                        process.stdin.emit('data', '');
-                    else {
-                        if (between) {
-                            yield wait(between);
-                            between = xvt.pollingMS * 10;
-                        }
-                        else
-                            between = xvt.pollingMS;
+                    if (between) {
+                        yield wait(between);
+                        between = xvt.pollingMS * 10;
                     }
+                    else
+                        between = xvt.pollingMS;
                     elapsed = new Date().getTime() / 1000 >> 0;
                     if (xvt.idleTimeout > 0) {
                         if (retry <= elapsed) {
@@ -475,8 +474,7 @@ var xvt;
     }
     xvt.beep = beep;
     function drain() {
-        input = '';
-        xvt.typeahead = '';
+        abort = true;
     }
     xvt.drain = drain;
     function hangup() {
@@ -593,7 +591,7 @@ var xvt;
         xvt.carrier = false;
         hangup();
     });
-    process.stdin.on('data', function (key) {
+    process.stdin.on('data', (key) => {
         let k;
         let k0;
         try {
@@ -780,6 +778,14 @@ var xvt;
             xvt.terminator = k0;
             process.stdin.pause();
         }
+    });
+    process.stdin.on('resume', () => {
+        if (abort) {
+            abort = false;
+            xvt.typeahead = '';
+        }
+        if (xvt.typeahead)
+            process.stdin.emit('data', '');
     });
 })(xvt || (xvt = {}));
 module.exports = xvt;

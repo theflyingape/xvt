@@ -1,6 +1,6 @@
 {
   "name": "xvt",
-  "version": "1.2.3",
+  "version": "1.2.4",
   "description": "an asynchronous terminal session handler",
   "main": "./xvt.js",
   "types": "./xvt.d.ts",
@@ -9,7 +9,7 @@
     "romanize": "^1.1.1"
   },
   "devDependencies": {
-    "@types/node": "^12.12.50",
+    "@types/node": "^12.12.53",
     "typescript": "^3.9.7"
   },
   "scripts": {

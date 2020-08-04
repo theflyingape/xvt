@@ -31,6 +31,7 @@ module module2 {
 				xvt.out(xvt.magenta, xvt.bright, ` -- you think `, -250
 					, xvt.normal, `you're Harry `, -250
 					, xvt.faint, `Potter?`, -250)
+				xvt.abort = true
 				break
 			case 'R':
 				xvt.out('un away')
