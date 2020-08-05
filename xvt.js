@@ -254,16 +254,18 @@ var xvt;
     let abort = false;
     function read() {
         return __awaiter(this, void 0, void 0, function* () {
-            let between = 0;
+            let between = xvt.pollingMS;
             let elapsed = new Date().getTime() / 1000 >> 0;
             let retry = elapsed + (xvt.idleTimeout >> 1);
             let warn = true;
             xvt.entry = '';
             xvt.terminator = null;
-            if (process.stdin.isPaused)
-                process.stdin.resume();
             try {
                 while (xvt.carrier && retry && class_validator_1.isEmpty(xvt.terminator)) {
+                    if (process.stdin.isPaused) {
+                        process.stdin.resume();
+                        between = 1;
+                    }
                     if (between) {
                         yield wait(between);
                         between = xvt.pollingMS * 10;
@@ -751,24 +753,28 @@ var xvt;
         }
         if (k.length > 1)
             xvt.typeahead = k.substr(1);
-        if ((eol || lines) && entryMax > 0 && input.length >= entryMax) {
-            beep();
-            if (lines && (line + 1) < lines) {
-                xvt.entry = input;
-                xvt.terminator = k0;
-                if (k0 !== ' ') {
-                    let i = input.lastIndexOf(' ');
-                    if (i > 0) {
-                        rubout(input.substring(i).length);
-                        xvt.entry = input.substring(0, i);
-                        xvt.typeahead = input.substring(i + 1) + k0 + xvt.typeahead;
+        if (eol || lines) {
+            if (entryMax > 0 && input.length >= entryMax) {
+                beep();
+                if (lines && (line + 1) < lines) {
+                    xvt.entry = input;
+                    xvt.terminator = k0;
+                    if (k0 !== ' ') {
+                        let i = input.lastIndexOf(' ');
+                        if (i > 0) {
+                            rubout(input.substring(i).length);
+                            xvt.entry = input.substring(0, i);
+                            xvt.typeahead = input.substring(i + 1) + k0 + xvt.typeahead;
+                        }
                     }
+                    process.stdin.pause();
                 }
-                process.stdin.pause();
+                else
+                    xvt.typeahead = '';
+                return;
             }
-            else
-                xvt.typeahead = '';
-            return;
+            if (xvt.typeahead.length)
+                process.stdin.pause();
         }
         if (echo)
             out(k0);

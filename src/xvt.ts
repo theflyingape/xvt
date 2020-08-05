@@ -336,17 +336,19 @@ module xvt {
     let abort = false
 
     export async function read() {
-        let between = 0
+        let between = pollingMS
         let elapsed = new Date().getTime() / 1000 >> 0
         let retry = elapsed + (idleTimeout >> 1)
         let warn = true
         entry = ''
         terminator = null
 
-        if (process.stdin.isPaused) process.stdin.resume()
-
         try {
             while (carrier && retry && isEmpty(terminator)) {
+                if (process.stdin.isPaused) {
+                    process.stdin.resume()
+                    between = 1
+                }
                 if (between) {
                     await wait(between)
                     between = pollingMS * 10
@@ -848,26 +850,30 @@ module xvt {
         if (k.length > 1)
             typeahead = k.substr(1)
 
-        //  don't exceed maximum input allowed
-        if ((eol || lines) && entryMax > 0 && input.length >= entryMax) {
-            beep()
-            if (lines && (line + 1) < lines) {
-                entry = input
-                terminator = k0
-                //  word-wrap if this entry will overflow into next line
-                if (k0 !== ' ') {
-                    let i = input.lastIndexOf(' ')
-                    if (i > 0) {
-                        rubout(input.substring(i).length)
-                        entry = input.substring(0, i)
-                        typeahead = input.substring(i + 1) + k0 + typeahead
+        if (eol || lines) {
+            //  don't exceed maximum input allowed
+            if (entryMax > 0 && input.length >= entryMax) {
+                beep()
+                if (lines && (line + 1) < lines) {
+                    entry = input
+                    terminator = k0
+                    //  word-wrap if this entry will overflow into next line
+                    if (k0 !== ' ') {
+                        let i = input.lastIndexOf(' ')
+                        if (i > 0) {
+                            rubout(input.substring(i).length)
+                            entry = input.substring(0, i)
+                            typeahead = input.substring(i + 1) + k0 + typeahead
+                        }
                     }
+                    process.stdin.pause()
                 }
-                process.stdin.pause()
+                else
+                    typeahead = ''
+                return
             }
-            else
-                typeahead = ''
-            return
+            if (typeahead.length)
+                process.stdin.pause()
         }
 
         if (echo) out(k0)
