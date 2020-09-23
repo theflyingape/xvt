@@ -109,6 +109,7 @@ module xvt {
 
         //  ANSI using VT (DEC), PC (IBM), or XT (UTF-8) encoding, else dumb ASCII
         private _emulation: emulator
+        private _encoding: 'ascii' | 'utf8'
         private _fields: iField
         private _focus: string | number
 
@@ -117,10 +118,15 @@ module xvt {
         }
 
         set emulation(e: emulator) {
-            process.stdin.setEncoding(e == 'XT' ? 'utf8' : 'ascii')
+            this._encoding = e == 'XT' ? 'utf8' : 'ascii'
+            process.stdin.setEncoding(this.encoding)
+            process.stdout.setEncoding(this.encoding)
             this._emulation = e
         }
 
+        get encoding() {
+            return this._encoding
+        }
 
         //  ░ ▒ ▓ █
         get LGradient() {
@@ -580,7 +586,7 @@ module xvt {
     export function out(...params) {
         try {
             if (carrier)
-                process.stdout.write(attr(...params))
+                process.stdout.write(attr(...params), app.encoding)
         }
         catch (err) {
             carrier = false

@@ -73,10 +73,12 @@ declare module xvt {
     class session {
         constructor(e?: emulator);
         private _emulation;
+        private _encoding;
         private _fields;
         private _focus;
         get emulation(): emulator;
         set emulation(e: emulator);
+        get encoding(): "ascii" | "utf8";
         get LGradient(): any;
         get RGradient(): any;
         get Draw(): any;

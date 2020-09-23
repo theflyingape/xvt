@@ -28,7 +28,13 @@ module main {
 		'enq': {
 			cb: () => {
 				console.log('ENQ response =', xvt.entry.split('').map((c) => { return c.charCodeAt(0) }))
-				xvt.waste(2000)
+				xvt.waste(1000)
+				xvt.app.emulation = 'PC'
+				xvt.outln('\nPC: ', xvt.app.Empty, xvt.app.Draw)
+				xvt.app.emulation = 'VT'
+				xvt.outln('\nVT: ', xvt.app.Empty, '\x1B(0', xvt.app.Draw, '\x1B(B')
+				xvt.app.emulation = 'XT'
+				xvt.outln('\nXT: ', xvt.app.Empty, xvt.app.Draw)
 				xvt.app.focus = 'pause'
 			}, prompt: '\x1B[6n', enq: true
 		},

@@ -71,8 +71,13 @@ var xvt;
             return this._emulation;
         }
         set emulation(e) {
-            process.stdin.setEncoding(e == 'XT' ? 'utf8' : 'ascii');
+            this._encoding = e == 'XT' ? 'utf8' : 'ascii';
+            process.stdin.setEncoding(this.encoding);
+            process.stdout.setEncoding(this.encoding);
             this._emulation = e;
+        }
+        get encoding() {
+            return this._encoding;
         }
         get LGradient() {
             return {
@@ -502,7 +507,7 @@ var xvt;
     function out(...params) {
         try {
             if (xvt.carrier)
-                process.stdout.write(attr(...params));
+                process.stdout.write(attr(...params), xvt.app.encoding);
         }
         catch (err) {
             xvt.carrier = false;
