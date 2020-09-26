@@ -109,7 +109,7 @@ module xvt {
 
         //  ANSI using VT (DEC), PC (IBM), or XT (UTF-8) encoding, else dumb ASCII
         private _emulation: emulator
-        private _encoding: 'ascii' | 'utf8'
+        private _encoding: BufferEncoding
         private _fields: iField
         private _focus: string | number
 
@@ -124,7 +124,7 @@ module xvt {
             this._emulation = e
         }
 
-        get encoding() {
+        get encoding(): BufferEncoding {
             return this._encoding
         }
 
