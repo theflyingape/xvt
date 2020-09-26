@@ -1,6 +1,6 @@
 {
   "name": "xvt",
-  "version": "1.2.6",
+  "version": "1.2.7",
   "description": "an asynchronous terminal session handler",
   "main": "./xvt.js",
   "types": "./xvt.d.ts",

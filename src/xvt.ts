@@ -598,7 +598,7 @@ module xvt {
     }
 
     export function restore() {
-        out(app.emulation == 'XT' ? '\x1B[u' : '\x1B8')
+        out(app.emulation == 'VT' ? '\x1B8' : '\x1B[u')
         col = _col
         color = _color
         bold = _bold
@@ -610,7 +610,7 @@ module xvt {
     }
 
     export function save() {
-        out(app.emulation == 'XT' ? '\x1B[s' : '\x1B7')
+        out(app.emulation == 'VT' ? '\x1B7' : '\x1B[s')
         _col = col
         _color = color
         _bold = bold
