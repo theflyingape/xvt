@@ -519,7 +519,7 @@ var xvt;
     }
     xvt.outln = outln;
     function restore() {
-        out(xvt.app.emulation == 'XT' ? '\x1B[u' : '\x1B8');
+        out(xvt.app.emulation == 'VT' ? '\x1B8' : '\x1B[u');
         xvt.col = _col;
         xvt.color = _color;
         xvt.bold = _bold;
@@ -531,7 +531,7 @@ var xvt;
     }
     xvt.restore = restore;
     function save() {
-        out(xvt.app.emulation == 'XT' ? '\x1B[s' : '\x1B7');
+        out(xvt.app.emulation == 'VT' ? '\x1B7' : '\x1B[s');
         _col = xvt.col;
         _color = xvt.color;
         _bold = xvt.bold;

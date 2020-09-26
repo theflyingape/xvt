@@ -1,3 +1,4 @@
+/// <reference types="node" />
 declare module xvt {
     type emulator = string | 'dumb' | 'VT' | 'PC' | 'XT';
     interface Field {
@@ -78,7 +79,7 @@ declare module xvt {
         private _focus;
         get emulation(): emulator;
         set emulation(e: emulator);
-        get encoding(): "ascii" | "utf8";
+        get encoding(): BufferEncoding;
         get LGradient(): any;
         get RGradient(): any;
         get Draw(): any;
