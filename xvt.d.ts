@@ -24,7 +24,6 @@ declare module xvt {
     interface iField {
         [key: string]: Field;
     }
-    const romanize: any;
     const reset = 0;
     const bright = 1;
     const faint = 2;
@@ -71,6 +70,21 @@ declare module xvt {
     const lWhite = 107;
     const cll = 254;
     const clear = 255;
+    let carrier: boolean;
+    let modem: boolean;
+    let ondrop: Function;
+    let reason: string;
+    let defaultColor: number;
+    let defaultTimeout: number;
+    let idleTimeout: number;
+    let pollingMS: number;
+    let sessionAllowed: number;
+    let sessionStart: Date;
+    let terminator: string;
+    let typeahead: string;
+    let entry: string;
+    function wait(ms: number): Promise<unknown>;
+    function waste(ms: number): void;
     class session {
         constructor(e?: emulator);
         private _emulation;
@@ -92,20 +106,6 @@ declare module xvt {
         refocus(prompt?: string): void;
         private _read;
     }
-    let carrier: boolean;
-    let modem: boolean;
-    let ondrop: Function;
-    let reason: string;
-    let defaultColor: number;
-    let defaultTimeout: number;
-    let idleTimeout: number;
-    let pollingMS: number;
-    let sessionAllowed: number;
-    let sessionStart: Date;
-    let terminator: string;
-    let typeahead: string;
-    let entry: string;
-    let app: session;
     let col: number;
     let color: number;
     let bold: boolean;
@@ -114,9 +114,6 @@ declare module xvt {
     let flash: boolean;
     let row: number;
     let rvs: boolean;
-    function read(): Promise<void>;
-    function wait(ms: number): Promise<unknown>;
-    function waste(ms: number): void;
     function attr(...params: any[]): string;
     function beep(): void;
     function drain(): void;
@@ -127,5 +124,7 @@ declare module xvt {
     function save(): void;
     function plot(row: number, col: number): void;
     function rubout(n?: number): void;
+    function read(): Promise<void>;
+    let app: session;
 }
 export = xvt;

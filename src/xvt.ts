@@ -8,7 +8,6 @@
 
 const spawn = require('child_process')
 import { isBoolean, isDefined, isEmpty, isNotEmpty, isString } from 'class-validator'
-import { type } from 'os'
 
 module xvt {
 
@@ -47,61 +46,86 @@ module xvt {
         [key: string]: Form
     }
     */
-    export const romanize = require('romanize')
-    //  SGR (https://en.wikipedia.org/wiki/ANSI_escape_code#SGR_.28Select_Graphic_Rendition.29_parameters)
-    export const reset = 0      // all attributes off, default color
-    export const bright = 1     // make brighter
-    export const faint = 2      // make dimmer
-    export const uline = 4
-    export const blink = 5      //  not widely supported, unfortunately
-    export const reverse = 7
-    export const off = 20       //  turn any attribute on -> off, except color
-    export const nobright = 21  //  not widely supported: cancels bold only
-    export const normal = 22    //  cancels bold (really?) and faint
-    export const nouline = 24
-    export const noblink = 25
-    export const noreverse = 27
-    export const black = 30     //  foreground colors
-    export const red = 31
-    export const green = 32
-    export const yellow = 33
-    export const blue = 34
-    export const magenta = 35
-    export const cyan = 36
-    export const white = 37
-    export const Black = 40     //  background colors
-    export const Red = 41
-    export const Green = 42
-    export const Yellow = 43
-    export const Blue = 44
-    export const Magenta = 45
-    export const Cyan = 46
-    export const White = 47
-    export const lblack = 90    //  lighter foreground colors
-    export const lred = 91
-    export const lgreen = 92
-    export const lyellow = 93
-    export const lblue = 94
-    export const lmagenta = 95
-    export const lcyan = 96
-    export const lwhite = 97
-    export const lBlack = 100   //  lighter background colors
-    export const lRed = 101
-    export const lGreen = 102
-    export const lYellow = 103
-    export const lBlue = 104
-    export const lMagenta = 105
-    export const lCyan = 106
-    export const lWhite = 107
-    export const cll = 254
-    export const clear = 255
 
+    //  [SGR](https://en.wikipedia.org/wiki/ANSI_escape_code#SGR_.28Select_Graphic_Rendition.29_parameters)
+    export const reset      =   0   // all attributes off, default color
+    export const bright     =   1   // make brighter
+    export const faint      =   2   // make dimmer
+    export const uline      =   4
+    export const blink      =   5   //  not widely supported, unfortunately
+    export const reverse    =   7
+    export const off        =  20   //  turn any attribute on -> off, except color
+    export const nobright   =  21   //  not widely supported: cancels bold only
+    export const normal     =  22   //  cancels bold (really?) and faint
+    export const nouline    =  24
+    export const noblink    =  25
+    export const noreverse  =  27
+    export const black      =  30   //  foreground colors
+    export const red        =  31
+    export const green      =  32
+    export const yellow     =  33
+    export const blue       =  34
+    export const magenta    =  35
+    export const cyan       =  36
+    export const white      =  37
+    export const Black      =  40   //  background colors
+    export const Red        =  41
+    export const Green      =  42
+    export const Yellow     =  43
+    export const Blue       =  44
+    export const Magenta    =  45
+    export const Cyan       =  46
+    export const White      =  47
+    export const lblack     =  90   //  lighter foreground colors
+    export const lred       =  91
+    export const lgreen     =  92
+    export const lyellow    =  93
+    export const lblue      =  94
+    export const lmagenta   =  95
+    export const lcyan      =  96
+    export const lwhite     =  97
+    export const lBlack     = 100   //  lighter background colors
+    export const lRed       = 101
+    export const lGreen     = 102
+    export const lYellow    = 103
+    export const lBlue      = 104
+    export const lMagenta   = 105
+    export const lCyan      = 106
+    export const lWhite     = 107
+    export const cll        = 254
+    export const clear      = 255
+
+    //  application terminal session runtime variables
+    export let carrier = false
+    export let modem = false
+    export let ondrop: Function
+    export let reason = ''
+
+    export let defaultColor: number = white
+    export let defaultTimeout: number = -1
+    export let idleTimeout: number = 0
+    export let pollingMS: number = 50
+    export let sessionAllowed: number = 0
+    export let sessionStart: Date = null
+    export let terminator: string = null
+    export let typeahead: string = ''
+    export let entry: string = ''
+
+    //  session support functions
+    export function wait(ms: number) {
+        return new Promise(resolve => setTimeout(resolve, carrier ? ms : 0))
+    }
+
+    export function waste(ms: number) {
+        if (carrier)
+            spawn.execSync(`sleep ${ms / 1000}`)
+    }
+
+    //  the terminal session with optional form(s) support
     export class session {
 
         constructor(e: emulator = 'XT') {
             carrier = true
-            //const tty = require('tty')
-            //if (tty.isatty(0)) tty.ReadStream(0).setRawMode(true)
             if (process.stdin.isTTY) process.stdin.setRawMode(true)
             this.emulation = e
             sessionStart = new Date()
@@ -176,13 +200,15 @@ module xvt {
             this._fields = name
         }
 
-        get focus() { return this._focus }
+        get focus() {
+            return this._focus
+        }
 
         set focus(name: string | number) {
             let p = this._fields[name]
             if (!isDefined(p)) {
                 beep()
-                outln(off, bright, '?ERROR in xvt.app.form :: field "', name, '" undefined')
+                outln(off, bright, `?ERROR in xvt.app.form :: field '${name}' undefined`)
                 this.refocus()
                 return
             }
@@ -204,6 +230,7 @@ module xvt {
             if (isNotEmpty(this._focus)) this.focus = this.focus
         }
 
+        //  terminal input prompt entry point upon "focus"
         private async _read() {
             let p = this._fields[this.focus]
 
@@ -229,8 +256,10 @@ module xvt {
                 outln()         //  roll-and-scroll
 
             if (p.pause) {
+                cancel = ' '
                 echo = false
                 eol = false
+                enter = ' '
                 if (!isDefined(p.prompt)) p.prompt = '-pause-'
                 out('\r', reverse, p.prompt, reset)
                 abort = true
@@ -254,8 +283,6 @@ module xvt {
                 if (!isDefined(p.inputStyle)) p.inputStyle = defaultInputStyle
                 out(...p.inputStyle)
             }
-
-            if (!eol && !enter.length) enter = ' '
 
             idleTimeout = isDefined(p.timeout) ? p.timeout : defaultTimeout
             entryMin = isDefined(p.min) ? p.min : 0
@@ -300,22 +327,10 @@ module xvt {
         }
     }
 
-    export let carrier = false
-    export let modem = false
-    export let ondrop: Function
-    export let reason = ''
 
-    export let defaultColor: number = white
-    export let defaultTimeout: number = -1
-    export let idleTimeout: number = 0
-    export let pollingMS: number = 50
-    export let sessionAllowed: number = 0
-    export let sessionStart: Date = null
-    export let terminator: string = null
-    export let typeahead: string = ''
-    export let entry: string = ''
-
-    export let app = new session()
+    //  ******************
+    //  terminal emulation
+    //  ******************
 
     //  SGR registers
     export let col: number = 0
@@ -327,6 +342,7 @@ module xvt {
     export let row: number = 0
     export let rvs: boolean
 
+    //  local runtime registers
     let _col: number = 0
     let _color: number = 0
     let _bold: boolean = false
@@ -337,95 +353,6 @@ module xvt {
     let _rvs: boolean = false
     let _SGR: string = ''   //  Select Graphic Rendition
     let _text: string = ''  //  buffer constructed emulation output(s)
-
-    //  drain any input typeahead
-    let abort = false
-
-    export async function read() {
-        let between = pollingMS
-        let elapsed = new Date().getTime() / 1000 >> 0
-        let retry = elapsed + (idleTimeout >> 1)
-        let warn = true
-        entry = ''
-        terminator = null
-
-        try {
-            while (carrier && retry && isEmpty(terminator)) {
-                if (process.stdin.isPaused) {
-                    process.stdin.resume()
-                    between = 1
-                }
-                if (between) {
-                    await wait(between)
-                    between = pollingMS * 10
-                }
-                else
-                    between = pollingMS
-                elapsed = new Date().getTime() / 1000 >> 0
-                if (idleTimeout > 0) {
-                    if (retry <= elapsed) {
-                        beep()
-                        if (warn) {
-                            retry = elapsed + (idleTimeout >> 1)
-                            warn = false
-                        }
-                        else
-                            retry = 0
-                    }
-                }
-                else if (sessionAllowed && (elapsed - (sessionStart.getTime() / 1000)) > sessionAllowed)
-                    carrier = false
-            }
-        }
-        catch (err) {
-            carrier = false
-        }
-
-        if (!carrier || !retry) {
-            //  any remaining cancel operations will take over, else bye-bye
-            if (cancel.length) {
-                rubout(input.length)
-                entry = cancel
-                out(entry)
-            }
-            else {
-                if (!carrier) {
-                    process.stdout.write(attr(off, ' ** ', bright, 'your session expired', off, ' ** \r'))
-                    reason = 'got exhausted'
-                }
-                else if (!retry) {
-                    outln(off, ' ** ', faint, 'timeout', off, ' ** \r')
-                    reason = 'fallen asleep'
-                }
-                beep()
-                hangup()
-            }
-            //return new Promise(reject => 'timeout')
-        }
-
-        if (cancel.length && terminator === '\x1B') {
-            rubout(input.length)
-            entry = cancel
-            out(entry)
-        }
-
-        //  sanity resets back to default stdin processing
-        echo = true
-        eol = true
-        input = ''
-    }
-
-    export function wait(ms: number) {
-        return new Promise(resolve => setTimeout(resolve, ms))
-    }
-
-    export function waste(ms: number) {
-        if (carrier) {
-            //let start = new Date().getTime() + (ms)
-            //while (new Date().getTime() <= start) {}
-            spawn.execSync(`sleep ${ms / 1000}`)
-        }
-    }
 
     export function attr(...params): string {
         let result = ''
@@ -653,7 +580,13 @@ module xvt {
         }
     }
 
-    //  signal & stdin event handlers
+
+    //  *********************
+    //  session form(s) input
+    //  *********************
+
+    //  runtime field prompt registers
+    let abort: boolean = false
     let cancel: string = ''
     let defaultInputStyle: any = [bright, white]
     let defaultPromptStyle: any = [cyan]
@@ -669,19 +602,80 @@ module xvt {
     let lines: number = 0
     let multi: string[]
 
-    process.on('SIGHUP', function () {
-        outln(off, ' ** ', faint, 'hangup', off, ' ** ')
-        reason = 'hangup'
-        carrier = false
-        hangup()
-    })
+    export async function read() {
+        let between = pollingMS
+        let elapsed = new Date().getTime() / 1000 >> 0
+        let retry = elapsed + (idleTimeout >> 1)
+        let warn = true
+        entry = ''
+        terminator = null
 
-    process.on('SIGINT', function () {
-        outln(off, ' ** ', bright, 'interrupt', off, ' ** ')
-        reason = 'interrupted'
-        carrier = false
-        hangup()
-    })
+        try {
+            while (carrier && retry && isEmpty(terminator)) {
+                if (process.stdin.isPaused) {
+                    process.stdin.resume()
+                    between = 1
+                }
+                if (between) {
+                    await wait(between)
+                    between = pollingMS * 10
+                }
+                else
+                    between = pollingMS
+                elapsed = new Date().getTime() / 1000 >> 0
+                if (idleTimeout > 0) {
+                    if (retry <= elapsed) {
+                        beep()
+                        if (warn) {
+                            retry = elapsed + (idleTimeout >> 1)
+                            warn = false
+                        }
+                        else
+                            retry = 0
+                    }
+                }
+                else if (sessionAllowed && (elapsed - (sessionStart.getTime() / 1000)) > sessionAllowed)
+                    carrier = false
+            }
+        }
+        catch (err) {
+            carrier = false
+            reason = `read ${err.name}: ${err.message}`
+        }
+
+        if (!carrier || !retry) {
+            //  any remaining cancel operations will take over, else bye-bye
+            if (cancel.length) {
+                rubout(input.length)
+                entry = cancel
+                out(entry)
+            }
+            else {
+                if (!carrier) {
+                    process.stdout.write(attr(off, ' ** ', bright, 'your session expired', off, ' ** \r'))
+                    reason = reason || 'got exhausted'
+                }
+                else if (!retry) {
+                    outln(off, ' ** ', faint, 'timeout', off, ' ** \r')
+                    reason = reason || 'fallen asleep'
+                }
+                beep()
+                hangup()
+            }
+            //return new Promise(reject => 'timeout')
+        }
+
+        if (cancel.length && terminator === '\x1B') {
+            rubout(input.length)
+            entry = cancel
+            out(entry)
+        }
+
+        //  sanity resets back to default stdin processing
+        echo = true
+        eol = true
+        input = ''
+    }
 
     //  capture VT user input
     process.stdin.on('data', (key: Buffer) => {
@@ -693,6 +687,7 @@ module xvt {
             typeahead = ''
         }
         catch (err) {
+            console.log('stdin', err.name, ':', err.message)
             console.log(k, k.split('').map((c) => { return c.charCodeAt(0) }))
             return
         }
@@ -705,7 +700,7 @@ module xvt {
             return
         }
 
-        //  ctrl-d or ctrl-z to disconnect the session
+        //  ctrl-d or ctrl-z disconnects session
         if (k0 == '\x04' || k0 == '\x1A') {
             outln(off, ' ** disconnect ** ')
             reason = 'manual disconnect'
@@ -734,7 +729,7 @@ module xvt {
         }
 
         //  any text entry mode requires <CR> as the input line terminator
-        if (k0 == '\x0D') {
+        if (k0 == '\r') {
             if (!input.length && enter.length > 0) {
                 input = enter
                 if (echo) out(input)
@@ -767,88 +762,122 @@ module xvt {
                 return
             }
             //  let's cook for a special key event, if not prompting for a line of text
+            let cook = 1
             if (k0 == '\x1B') {
                 rubout(input.length)
-                if (k.startsWith('\x1B[A')) {
-                    typeahead = k.substr(3)
-                    k = '[UP]'
-                }
-                else if (k.startsWith('\x1B[B')) {
-                    typeahead = k.substr(3)
-                    k = '[DOWN]'
-                }
-                else if (k.startsWith('\x1B[C')) {
-                    typeahead = k.substr(3)
-                    k = '[RIGHT]'
-                }
-                else if (k.startsWith('\x1B[D')) {
-                    typeahead = k.substr(3)
-                    k = '[LEFT]'
-                }
-                else if (k.startsWith('\x1B[3~')) {
-                    typeahead = k.substr(4)
-                    k = '[DEL]'
-                }
-                else switch (k.substr(1)) {
-                    case 'OP':
+                cook = 3
+                switch (k.substr(1)) {
+                    case '[A':
+                        terminator = '[UP]'
+                        break
+                    case '[B':
+                        terminator = '[DOWN]'
+                        break
+                    case '[C':
+                        terminator = '[RIGHT]'
+                        break
+                    case '[D':
+                        terminator = '[LEFT]'
+                        break
                     case '[11~':
-                        k = '[F1]'
+                        cook++
+                    case '[1P':
+                        cook++
+                    case 'OP':
+                        terminator = '[F1]'
                         break
-                    case 'OQ':
                     case '[12~':
-                        k = '[F2]'
+                        cook++
+                    case '[1Q':
+                        cook++
+                    case 'OQ':
+                        terminator = '[F2]'
                         break
-                    case 'OR':
                     case '[13~':
-                        k = '[F3]'
+                        cook++
+                    case '[1R':
+                        cook++
+                    case 'OR':
+                        terminator = '[F3]'
                         break
-                    case 'OS':
                     case '[14~':
-                        k = '[F4]'
+                        cook++
+                    case '[1S':
+                        cook++
+                    case 'OS':
+                        terminator = '[F4]'
                         break
                     case '[15~':
-                        k = '[F5]'
+                        cook = 5
+                        terminator = '[F5]'
                         break
                     case '[17~':
-                        k = '[F6]'
+                        cook = 5
+                        terminator = '[F6]'
                         break
                     case '[18~':
-                        k = '[F7]'
+                        cook = 5
+                        terminator = '[F7]'
                         break
                     case '[19~':
-                        k = '[F8]'
+                        cook = 5
+                        terminator = '[F8]'
                         break
                     case '[20~':
-                        k = '[F9]'
+                        cook = 5
+                        terminator = '[F9]'
                         break
                     case '[21~':
-                        k = '[F10]'
+                        cook = 5
+                        terminator = '[F10]'
                         break
                     case '[23~':
-                        k = '[F11]'
+                        cook = 5
+                        terminator = '[F11]'
                         break
                     case '[24~':
-                        k = '[F12]'
+                        cook = 5
+                        terminator = '[F12]'
                         break
+                    case '[1~':
+                    case '[7~':
+                        cook++
                     case '[H':
-                        k = '[HOME]'
-                        break
-                    case '[F':
-                        k = '[END]'
+                        terminator = '[HOME]'
                         break
                     case '[2~':
-                        k = '[INS]'
+                        cook++
+                        terminator = '[INSERT]'
+                        break
+                    case '[3~':
+                        cook++
+                        terminator = '[DELETE]'
+                        break
+                    case '[4~':
+                    case '[8~':
+                        cook++
+                    case '[F':
+                        terminator = '[END]'
+                        break
+                    case '[5~':
+                        cook++
+                        terminator = '[PGUP]'
+                        break
+                    case '[6~':
+                        cook++
+                        terminator = '[PGDN]'
                         break
                     default:
-                        typeahead = k.substr(1)
-                        k = '[ESC]'
+                        cook = 1
+                        terminator = '[ESC]'
                         break
                 }
             }
             else
-                k = '^' + k0
-            entry = input
-            terminator = k
+                terminator = `^${String.fromCharCode(k0.charCodeAt(0) + 64)}`
+
+            entry = k.substr(0, cook)
+            typeahead = k.substr(cook)
             process.stdin.pause()
             return
         }
@@ -893,6 +922,24 @@ module xvt {
         }
     })
 
+
+    //  *****************************
+    //  signal & stdin event handlers
+    //  *****************************
+    process.on('SIGHUP', function () {
+        outln(off, ' ** ', faint, 'hangup', off, ' ** ')
+        reason = reason || 'hangup'
+        carrier = false
+        hangup()
+    })
+
+    process.on('SIGINT', function () {
+        outln(off, ' ** ', bright, 'interrupt', off, ' ** ')
+        reason = reason || 'interrupted'
+        carrier = false
+        hangup()
+    })
+
     process.stdin.on('resume', () => {
         //  abort any input pending
         if (abort) {
@@ -903,6 +950,9 @@ module xvt {
             process.stdin.emit('data', '')
     })
 
+
+    //  instantiate the runtime terminal session
+    export let app = new session()
 }
 
 export = xvt
