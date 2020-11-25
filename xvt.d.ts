@@ -20,6 +20,7 @@ declare module xvt {
         lines?: number;
         pause?: boolean;
         timeout?: number;
+        warn?: boolean;
     }
     interface iField {
         [key: string]: Field;
@@ -76,15 +77,16 @@ declare module xvt {
     let reason: string;
     let defaultColor: number;
     let defaultTimeout: number;
+    let defaultWarn: boolean;
+    let entry: string;
     let idleTimeout: number;
-    let pollingMS: number;
     let sessionAllowed: number;
     let sessionStart: Date;
     let terminator: string;
     let typeahead: string;
-    let entry: string;
-    function wait(ms: number): Promise<unknown>;
-    function waste(ms: number): void;
+    let waiting: Function;
+    function hangup(): void;
+    function sleep(ms: number): void;
     class session {
         constructor(e?: emulator);
         private _emulation;
@@ -117,7 +119,6 @@ declare module xvt {
     function attr(...params: any[]): string;
     function beep(): void;
     function drain(): void;
-    function hangup(): void;
     function out(...params: any[]): void;
     function outln(...params: any[]): void;
     function restore(): void;

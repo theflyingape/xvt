@@ -1,9 +1,8 @@
 import xvt = require('../xvt')
 
-xvt.outln('Testing xvt outputs:\n')
-xvt.outln(xvt.magenta, xvt.app.LGradient, xvt.reverse, ' BANNER', xvt.noreverse, xvt.app.RGradient, -500)
-xvt.out(xvt.red, 'R', -100, xvt.green, 'G', -100, xvt.blue, 'B', -100)
-xvt.outln(xvt.reset, ' - ', -100, xvt.bright, 'bold ', -100, xvt.normal, 'normal ', -100, xvt.blink, 'flash ', xvt.noblink, -100, xvt.faint, 'dim', -500)
+process.on('uncaughtException', (err, origin) => {
+    xvt.outln(`${origin} ${err}`)
+})
 
 module main {
 
@@ -21,8 +20,9 @@ module main {
 	xvt.ondrop = () => {
 		console.log('\nNice ... \n')
 	}
+
+	xvt.defaultTimeout = 30
 	xvt.modem = true
-	xvt.pollingMS = 20
 	xvt.sessionAllowed = 200
 
 	xvt.app.form = {
@@ -46,23 +46,25 @@ module main {
 			cb: () => {
 				xvt.outln('\nPress any key including function and control keys.  RETURN when done.')
 				xvt.app.focus = 'cook'
-			}, pause: true
+			}, pause: true, timeout: 10
 		},
 		'cook': {
 			cb: () => {
-				if (xvt.entry)
+				if (xvt.terminator !== '\r')
 					xvt.out(`You pressed '${xvt.terminator}' = `, xvt.entry.split('').map((c) => { return c.charCodeAt(0) }))
 				xvt.app.focus = xvt.terminator == '\r' ? 'username' : 'cook'
-			}, echo: false,  eol: false
+			}, cancel: ' ', echo: false,  eol: false, timeout: 20
 		},
 		'username': { cb: login, prompt: 'Username: ', min: 3, max: 10 },
 		'password': { cb: password, echo: false, min: 4, timeout: 15 }
 	}
 
-	process.nextTick(() => {
-		xvt.outln(-1000)
-		xvt.out('Request terminal device status ')
-		xvt.app.focus = 'enq'
-	})
+	xvt.outln('Testing xvt outputs:\n')
+	xvt.outln(xvt.magenta, xvt.app.LGradient, xvt.reverse, ' BANNER', xvt.noreverse, xvt.app.RGradient, -500)
+	xvt.out(xvt.red, 'R', -100, xvt.green, 'G', -100, xvt.blue, 'B', -100)
+	xvt.outln(xvt.reset, ' - ', -100, xvt.bright, 'bold ', -100, xvt.normal, 'normal ', -100, xvt.blink, 'flash ', xvt.noblink, -100, xvt.faint, 'dim', -500)
 
+	xvt.outln(-1000)
+	xvt.out('Request terminal device status ')
+	xvt.app.focus = 'enq'
 }

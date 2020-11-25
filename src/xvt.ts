@@ -31,7 +31,8 @@ module xvt {
         eol?: boolean       //  requires user to terminate input
         lines?: number      //  multiple line entry
         pause?: boolean     //  press any key to continue
-        timeout?: number
+        timeout?: number    //  in seconds
+        warn?: boolean      //  send bell if entry timeout is halfway to expired
     }
 
     export interface iField {
@@ -102,24 +103,39 @@ module xvt {
     export let reason = ''
 
     export let defaultColor: number = white
-    export let defaultTimeout: number = -1
+    export let defaultTimeout: number = 0
+    export let defaultWarn: boolean = true
+    export let entry: string = ''
     export let idleTimeout: number = 0
-    export let pollingMS: number = 50
     export let sessionAllowed: number = 0
     export let sessionStart: Date = null
     export let terminator: string = null
     export let typeahead: string = ''
-    export let entry: string = ''
+    export let waiting: Function
 
     //  session support functions
-    export function wait(ms: number) {
-        return new Promise(resolve => setTimeout(resolve, carrier ? ms : 0))
+    export function hangup() {
+        if (ondrop) ondrop()
+        ondrop = null
+
+        //  1.5-seconds of retro-fun  :)
+        if (carrier && modem) {
+            out(off, '+', -50, '+', -50, '+', -400)
+            outln('\nOK')
+            out(-300, 'ATH\r', -200)
+            beep()
+            outln('\n', -100, 'NO CARRIER')
+        }
+
+        carrier = false
+        process.exit()
     }
 
-    export function waste(ms: number) {
+    export function sleep(ms: number) {
         if (carrier)
             spawn.execSync(`sleep ${ms / 1000}`)
     }
+
 
     //  the terminal session with optional form(s) support
     export class session {
@@ -208,7 +224,7 @@ module xvt {
             let p = this._fields[name]
             if (!isDefined(p)) {
                 beep()
-                outln(off, bright, `?ERROR in xvt.app.form :: field '${name}' undefined`)
+                outln(off, red, '?', bright, 'ERROR', defaultColor, ` in xvt.app.form :: field '${name}' undefined`)
                 this.refocus()
                 return
             }
@@ -239,6 +255,7 @@ module xvt {
 
             if (p.enq) {
                 enq = true
+                warn = false
                 out(p.prompt)
                 idleTimeout = 5
                 await read()
@@ -284,10 +301,11 @@ module xvt {
                 out(...p.inputStyle)
             }
 
-            idleTimeout = isDefined(p.timeout) ? p.timeout : defaultTimeout
             entryMin = isDefined(p.min) ? p.min : 0
             entryMax = isDefined(p.max) ? p.max : (lines ? 72 : eol ? 0 : 1)
             eraser = isDefined(p.eraser) ? p.eraser : ' '
+            idleTimeout = isDefined(p.timeout) ? p.timeout : defaultTimeout
+            warn = isDefined(p.warn) ? p.warn : defaultWarn
 
             if (row && col && echo && entryMax)
                 out(eraser.repeat(entryMax), '\b'.repeat(entryMax))
@@ -363,7 +381,7 @@ module xvt {
                     result = _text
                     _text = ''
                     out(result)
-                    waste(-data)
+                    sleep(-data)
                 }
                 else if (app.emulation !== 'dumb') {
                     switch (data) {
@@ -493,23 +511,6 @@ module xvt {
         abort = true
     }
 
-    export function hangup() {
-        if (ondrop) ondrop()
-        ondrop = null
-
-        //  1.5-seconds of retro-fun  :)
-        if (carrier && modem) {
-            out(off, '+++'); waste(500)
-            outln('\nOK'); waste(400)
-            out('ATH\r'); waste(300)
-            beep(); waste(200)
-            outln('\nNO CARRIER'); waste(100)
-        }
-
-        carrier = false
-        process.exit()
-    }
-
     export function out(...params) {
         try {
             if (carrier)
@@ -601,55 +602,39 @@ module xvt {
     let line: number = 0
     let lines: number = 0
     let multi: string[]
+    let warn: boolean = defaultWarn
 
     export async function read() {
-        let between = pollingMS
         let elapsed = new Date().getTime() / 1000 >> 0
-        let retry = elapsed + (idleTimeout >> 1)
-        let warn = true
+        let retry = true
         entry = ''
         terminator = null
 
         try {
             while (carrier && retry && isEmpty(terminator)) {
-                if (process.stdin.isPaused) {
-                    process.stdin.resume()
-                    between = 1
-                }
-                if (between) {
-                    await wait(between)
-                    between = pollingMS * 10
-                }
-                else
-                    between = pollingMS
-                elapsed = new Date().getTime() / 1000 >> 0
-                if (idleTimeout > 0) {
-                    if (retry <= elapsed) {
+                await forInput(idleTimeout ? idleTimeout * (warn ? 500 : 1000) : 2147483647).catch(() => {
+                    elapsed = new Date().getTime() / 1000 >> 0
+                    if (isEmpty(terminator) && retry && warn) {
                         beep()
-                        if (warn) {
-                            retry = elapsed + (idleTimeout >> 1)
-                            warn = false
-                        }
-                        else
-                            retry = 0
+                        retry = warn
+                        warn = false
                     }
-                }
-                else if (sessionAllowed && (elapsed - (sessionStart.getTime() / 1000)) > sessionAllowed)
-                    carrier = false
+                    else if (sessionAllowed && (elapsed - (sessionStart.getTime() / 1000)) > sessionAllowed)
+                        carrier = false
+                    else
+                        retry = false
+                })
             }
         }
         catch (err) {
             carrier = false
-            reason = `read ${err.name}: ${err.message}`
+            reason = `read() ${err.message}`
         }
 
         if (!carrier || !retry) {
             //  any remaining cancel operations will take over, else bye-bye
-            if (cancel.length) {
-                rubout(input.length)
-                entry = cancel
-                out(entry)
-            }
+            if (cancel.length)
+                terminator = '\x1B'
             else {
                 if (!carrier) {
                     process.stdout.write(attr(off, ' ** ', bright, 'your session expired', off, ' ** \r'))
@@ -662,19 +647,27 @@ module xvt {
                 beep()
                 hangup()
             }
-            //return new Promise(reject => 'timeout')
         }
 
-        if (cancel.length && terminator === '\x1B') {
+        if (cancel.length && terminator == '\x1B') {
             rubout(input.length)
             entry = cancel
             out(entry)
+            terminator = '\r'
         }
 
         //  sanity resets back to default stdin processing
         echo = true
         eol = true
         input = ''
+
+        function forInput(ms: number) {
+            return new Promise((resolve, reject) => {
+                waiting = () => { resolve(terminator) }
+                if (process.stdin.isPaused) process.stdin.resume()
+                setTimeout(reject, carrier ? ms : 0)
+            }).finally(() => { waiting = null })
+        }
     }
 
     //  capture VT user input
@@ -696,6 +689,7 @@ module xvt {
         if (enq) {
             entry = k
             terminator = k0
+            console.log('enq terminated')
             process.stdin.pause()
             return
         }
@@ -763,6 +757,7 @@ module xvt {
             }
             //  let's cook for a special key event, if not prompting for a line of text
             let cook = 1
+            terminator = `^${String.fromCharCode(k0.charCodeAt(0) + 64)}`
             if (k0 == '\x1B') {
                 rubout(input.length)
                 cook = 3
@@ -873,9 +868,6 @@ module xvt {
                         break
                 }
             }
-            else
-                terminator = `^${String.fromCharCode(k0.charCodeAt(0) + 64)}`
-
             entry = k.substr(0, cook)
             typeahead = k.substr(cook)
             process.stdin.pause()
@@ -938,6 +930,10 @@ module xvt {
         reason = reason || 'interrupted'
         carrier = false
         hangup()
+    })
+
+    process.stdin.on('pause', () => {
+        if (waiting) waiting()
     })
 
     process.stdin.on('resume', () => {
