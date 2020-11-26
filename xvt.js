@@ -75,11 +75,12 @@ var xvt;
             xvt.ondrop();
         xvt.ondrop = null;
         if (xvt.carrier && xvt.modem) {
-            out(xvt.off, '+', -50, '+', -50, '+', -400);
+            out(xvt.off, '+', -125, '+', -125, '+', -250);
             outln('\nOK');
-            out(-300, 'ATH\r', -200);
+            out(-400, 'ATH\r', -300);
             beep();
-            outln('\n', -100, 'NO CARRIER');
+            outln('\n', -200, 'NO CARRIER');
+            sleep(100);
         }
         xvt.carrier = false;
         process.exit();
@@ -231,6 +232,7 @@ var xvt;
                 eraser = class_validator_1.isDefined(p.eraser) ? p.eraser : ' ';
                 xvt.idleTimeout = class_validator_1.isDefined(p.timeout) ? p.timeout : xvt.defaultTimeout;
                 warn = class_validator_1.isDefined(p.warn) ? p.warn : xvt.defaultWarn;
+                input = '';
                 if (row && col && echo && entryMax)
                     out(eraser.repeat(entryMax), '\b'.repeat(entryMax));
                 yield read();
@@ -512,40 +514,38 @@ var xvt;
     let warn = xvt.defaultWarn;
     function read() {
         return __awaiter(this, void 0, void 0, function* () {
+            const idle = xvt.idleTimeout ? xvt.idleTimeout * (warn ? 500 : 1000) : 2147483647;
             let elapsed = new Date().getTime() / 1000 >> 0;
             let retry = true;
             xvt.entry = '';
             xvt.terminator = null;
-            try {
-                while (xvt.carrier && retry && class_validator_1.isEmpty(xvt.terminator)) {
-                    yield forInput(xvt.idleTimeout ? xvt.idleTimeout * (warn ? 500 : 1000) : 2147483647).catch(() => {
-                        elapsed = new Date().getTime() / 1000 >> 0;
-                        if (class_validator_1.isEmpty(xvt.terminator) && retry && warn) {
-                            beep();
-                            retry = warn;
-                            warn = false;
-                        }
-                        else if (xvt.sessionAllowed && (elapsed - (xvt.sessionStart.getTime() / 1000)) > xvt.sessionAllowed)
-                            xvt.carrier = false;
-                        else
-                            retry = false;
-                    });
+            if (xvt.carrier) {
+                elapsed = new Date().getTime() / 1000 >> 0;
+                if (xvt.sessionAllowed && (elapsed - (xvt.sessionStart.getTime() / 1000)) > xvt.sessionAllowed) {
+                    outln(xvt.off, ' ** ', xvt.bright, 'your session expired', xvt.off, ' ** ');
+                    xvt.reason = xvt.reason || 'got exhausted';
+                    xvt.carrier = false;
                 }
             }
-            catch (err) {
-                xvt.carrier = false;
-                xvt.reason = `read() ${err.message}`;
+            while (xvt.carrier && retry && class_validator_1.isEmpty(xvt.terminator)) {
+                yield forInput(idle).catch(() => {
+                    if (class_validator_1.isEmpty(xvt.terminator) && retry && warn) {
+                        beep();
+                        retry = warn;
+                        warn = false;
+                    }
+                    else
+                        retry = false;
+                });
             }
             if (!xvt.carrier || !retry) {
                 if (cancel.length)
                     xvt.terminator = '\x1B';
                 else {
                     if (!xvt.carrier) {
-                        process.stdout.write(attr(xvt.off, ' ** ', xvt.bright, 'your session expired', xvt.off, ' ** \r'));
-                        xvt.reason = xvt.reason || 'got exhausted';
                     }
                     else if (!retry) {
-                        outln(xvt.off, ' ** ', xvt.faint, 'timeout', xvt.off, ' ** \r');
+                        outln(xvt.off, ' ** ', xvt.faint, 'timeout', xvt.off, ' ** ');
                         xvt.reason = xvt.reason || 'fallen asleep';
                     }
                     beep();
@@ -558,9 +558,6 @@ var xvt;
                 out(xvt.entry);
                 xvt.terminator = '\r';
             }
-            echo = true;
-            eol = true;
-            input = '';
             function forInput(ms) {
                 return new Promise((resolve, reject) => {
                     xvt.waiting = () => { resolve(xvt.terminator); };

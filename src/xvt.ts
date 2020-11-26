@@ -38,15 +38,6 @@ module xvt {
     export interface iField {
         [key: string]: Field
     }
-    /*
-    export interface Form {
-        prompts: iField[]
-    }
-
-    export interface iForm {
-        [key: string]: Form
-    }
-    */
 
     //  [SGR](https://en.wikipedia.org/wiki/ANSI_escape_code#SGR_.28Select_Graphic_Rendition.29_parameters)
     export const reset      =   0   // all attributes off, default color
@@ -120,11 +111,12 @@ module xvt {
 
         //  1.5-seconds of retro-fun  :)
         if (carrier && modem) {
-            out(off, '+', -50, '+', -50, '+', -400)
+            out(off, '+', -125, '+', -125, '+', -250)
             outln('\nOK')
-            out(-300, 'ATH\r', -200)
+            out(-400, 'ATH\r', -300)
             beep()
-            outln('\n', -100, 'NO CARRIER')
+            outln('\n', -200, 'NO CARRIER')
+            sleep(100)
         }
 
         carrier = false
@@ -306,6 +298,7 @@ module xvt {
             eraser = isDefined(p.eraser) ? p.eraser : ' '
             idleTimeout = isDefined(p.timeout) ? p.timeout : defaultTimeout
             warn = isDefined(p.warn) ? p.warn : defaultWarn
+            input = ''
 
             if (row && col && echo && entryMax)
                 out(eraser.repeat(entryMax), '\b'.repeat(entryMax))
@@ -605,30 +598,31 @@ module xvt {
     let warn: boolean = defaultWarn
 
     export async function read() {
+        const idle = idleTimeout ? idleTimeout * (warn ? 500 : 1000) : 2147483647
         let elapsed = new Date().getTime() / 1000 >> 0
         let retry = true
         entry = ''
         terminator = null
 
-        try {
-            while (carrier && retry && isEmpty(terminator)) {
-                await forInput(idleTimeout ? idleTimeout * (warn ? 500 : 1000) : 2147483647).catch(() => {
-                    elapsed = new Date().getTime() / 1000 >> 0
-                    if (isEmpty(terminator) && retry && warn) {
-                        beep()
-                        retry = warn
-                        warn = false
-                    }
-                    else if (sessionAllowed && (elapsed - (sessionStart.getTime() / 1000)) > sessionAllowed)
-                        carrier = false
-                    else
-                        retry = false
-                })
+        if (carrier) {
+            elapsed = new Date().getTime() / 1000 >> 0
+            if (sessionAllowed && (elapsed - (sessionStart.getTime() / 1000)) > sessionAllowed) {
+                outln(off, ' ** ', bright, 'your session expired', off, ' ** ')
+                reason = reason || 'got exhausted'
+                carrier = false
             }
         }
-        catch (err) {
-            carrier = false
-            reason = `read() ${err.message}`
+
+        while (carrier && retry && isEmpty(terminator)) {
+            await forInput(idle).catch(() => {
+                if (isEmpty(terminator) && retry && warn) {
+                    beep()
+                    retry = warn
+                    warn = false
+                }
+                else
+                    retry = false
+            })
         }
 
         if (!carrier || !retry) {
@@ -637,11 +631,9 @@ module xvt {
                 terminator = '\x1B'
             else {
                 if (!carrier) {
-                    process.stdout.write(attr(off, ' ** ', bright, 'your session expired', off, ' ** \r'))
-                    reason = reason || 'got exhausted'
                 }
                 else if (!retry) {
-                    outln(off, ' ** ', faint, 'timeout', off, ' ** \r')
+                    outln(off, ' ** ', faint, 'timeout', off, ' ** ')
                     reason = reason || 'fallen asleep'
                 }
                 beep()
@@ -655,11 +647,6 @@ module xvt {
             out(entry)
             terminator = '\r'
         }
-
-        //  sanity resets back to default stdin processing
-        echo = true
-        eol = true
-        input = ''
 
         function forInput(ms: number) {
             return new Promise((resolve, reject) => {
@@ -932,6 +919,7 @@ module xvt {
         hangup()
     })
 
+    //  resolve forInput() promise
     process.stdin.on('pause', () => {
         if (waiting) waiting()
     })
@@ -942,6 +930,7 @@ module xvt {
             abort = false
             typeahead = ''
         }
+        //  make event handler immediately aware of input pending
         if (typeahead)
             process.stdin.emit('data', '')
     })
