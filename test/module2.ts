@@ -54,8 +54,8 @@ module module2 {
 	xvt.app.form = {
 		1: { cb: start2, pause: true },
 		'email': { cb: email, prompt: 'E-mail: ' },
-		'message': { cb: message, lines: 5, prompt: 'Send a message' },
-		2: { cb: fight, prompt: '<A>ttack, <C>ast a spell, or <R>etreat: ', cancel: 'r', enter: 'a', eol: false, match: /A|C|R/i, timeout: 5 },
+		'message': { cb: message, lines: 5, prompt: 'Send a message', timeout: 60 },
+		2: { cb: fight, prompt: '<A>ttack, <C>ast a spell, or <R>etreat: ', cancel: 'r', enter: 'a', eol: false, match: /A|C|R/i, timeout: 8 },
 		3: { cb: logoff, prompt: 'Logoff (Yes/No)? ', cancel: 'y', enter: 'n', match: /Y|N/i, max: 3, timeout: 10 }
 	}
 

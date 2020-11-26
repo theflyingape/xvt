@@ -124,7 +124,7 @@ declare module xvt {
     function restore(): void;
     function save(): void;
     function plot(row: number, col: number): void;
-    function rubout(n?: number): void;
+    function rubout(n?: number, erase?: boolean): void;
     function read(): Promise<void>;
     let app: session;
 }

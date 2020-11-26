@@ -181,6 +181,7 @@ var xvt;
                 let p = this._fields[this.focus];
                 cancel = class_validator_1.isDefined(p.cancel) ? p.cancel : '';
                 enter = class_validator_1.isDefined(p.enter) ? p.enter : '';
+                input = '';
                 if (p.enq) {
                     enq = true;
                     warn = false;
@@ -205,8 +206,8 @@ var xvt;
                     enter = ' ';
                     if (!class_validator_1.isDefined(p.prompt))
                         p.prompt = '-pause-';
-                    out('\r', xvt.reverse, p.prompt, xvt.reset);
-                    abort = true;
+                    out(xvt.reverse, p.prompt, xvt.reset);
+                    drain();
                 }
                 else {
                     echo = class_validator_1.isDefined(p.echo) ? p.echo : true;
@@ -216,8 +217,9 @@ var xvt;
                     out(...p.promptStyle);
                     if (class_validator_1.isDefined(p.prompt))
                         out(p.prompt);
-                    lines = class_validator_1.isDefined(p.lines) ? p.lines : 0;
+                    lines = class_validator_1.isDefined(p.lines) ? (p.lines > 1 ? p.lines : 2) : 0;
                     if (lines) {
+                        eol = true;
                         line = 0;
                         outln();
                         out(xvt.bright, (line + 1).toString(), xvt.normal, '/', lines.toString(), xvt.faint, '] ', xvt.normal);
@@ -232,36 +234,48 @@ var xvt;
                 eraser = class_validator_1.isDefined(p.eraser) ? p.eraser : ' ';
                 xvt.idleTimeout = class_validator_1.isDefined(p.timeout) ? p.timeout : xvt.defaultTimeout;
                 warn = class_validator_1.isDefined(p.warn) ? p.warn : xvt.defaultWarn;
-                input = '';
                 if (row && col && echo && entryMax)
                     out(eraser.repeat(entryMax), '\b'.repeat(entryMax));
                 yield read();
-                out(xvt.reset);
                 if (class_validator_1.isDefined(p.match)) {
                     if (!p.match.test(xvt.entry)) {
-                        abort = true;
+                        drain();
                         this.refocus();
                         return;
                     }
                 }
-                while (lines && line < lines) {
-                    outln();
-                    if (xvt.entry.length)
-                        multi[line++] = xvt.entry;
-                    if (xvt.entry.length && line < lines) {
+                if (class_validator_1.isBoolean(p.pause))
+                    rubout(7, true);
+                if (lines) {
+                    do {
+                        multi[line] = xvt.entry;
+                        if (xvt.terminator == '[UP]') {
+                            if (line) {
+                                out('\x1B[A');
+                                line--;
+                            }
+                            out('\r');
+                        }
+                        else {
+                            outln();
+                            line++;
+                            if (!xvt.entry.length || line == lines) {
+                                for (let i = line; i < lines; i++) {
+                                    outln(xvt.cll);
+                                    delete multi[i];
+                                }
+                                break;
+                            }
+                        }
                         out(xvt.bright, (line + 1).toString(), xvt.normal, '/', lines.toString(), xvt.faint, '] ', xvt.normal);
                         out(...p.inputStyle);
+                        input = multi[line] || '';
+                        out(input);
                         yield read();
-                        out(xvt.reset);
-                    }
-                    else {
-                        xvt.entry = multi.join('\n');
-                        lines = 0;
-                    }
-                }
-                if (class_validator_1.isBoolean(p.pause)) {
-                    echo = true;
-                    out('\r', xvt.cll);
+                    } while (line < lines);
+                    xvt.entry = multi.join('\n');
+                    while (xvt.entry.substr(-1) == '\n')
+                        xvt.entry = xvt.entry.substr(0, xvt.entry.length - 1);
                 }
                 p.cb();
             });
@@ -426,6 +440,7 @@ var xvt;
     xvt.beep = beep;
     function drain() {
         abort = true;
+        xvt.typeahead = '';
     }
     xvt.drain = drain;
     function out(...params) {
@@ -489,8 +504,10 @@ var xvt;
         xvt.col = col;
     }
     xvt.plot = plot;
-    function rubout(n = 1) {
-        if (echo) {
+    function rubout(n = 1, erase) {
+        if (!class_validator_1.isDefined(erase))
+            erase = echo;
+        if (erase) {
             out(`\b${eraser}\b`.repeat(n));
             xvt.col -= n;
         }
@@ -538,13 +555,12 @@ var xvt;
                         retry = false;
                 });
             }
+            out(xvt.reset);
             if (!xvt.carrier || !retry) {
                 if (cancel.length)
-                    xvt.terminator = '\x1B';
+                    xvt.terminator = '[ESC]';
                 else {
-                    if (!xvt.carrier) {
-                    }
-                    else if (!retry) {
+                    if (!retry) {
                         outln(xvt.off, ' ** ', xvt.faint, 'timeout', xvt.off, ' ** ');
                         xvt.reason = xvt.reason || 'fallen asleep';
                     }
@@ -552,7 +568,7 @@ var xvt;
                     hangup();
                 }
             }
-            if (cancel.length && xvt.terminator == '\x1B') {
+            if (cancel.length && xvt.terminator == '[ESC]') {
                 rubout(input.length);
                 xvt.entry = cancel;
                 out(xvt.entry);
@@ -570,229 +586,229 @@ var xvt;
     }
     xvt.read = read;
     process.stdin.on('data', (key) => {
-        let k;
-        let k0;
-        try {
-            k = xvt.typeahead + key.toString();
-            k0 = k.substr(0, 1);
+        do {
+            let k = xvt.typeahead + (key ? key.toString() : '');
             xvt.typeahead = '';
-        }
-        catch (err) {
-            console.log('stdin', err.name, ':', err.message);
-            console.log(k, k.split('').map((c) => { return c.charCodeAt(0); }));
-            return;
-        }
-        if (enq) {
-            xvt.entry = k;
-            xvt.terminator = k0;
-            console.log('enq terminated');
-            process.stdin.pause();
-            return;
-        }
-        if (k0 == '\x04' || k0 == '\x1A') {
-            outln(xvt.off, ' ** disconnect ** ');
-            xvt.reason = 'manual disconnect';
-            hangup();
-        }
-        if (k0 == '\b' || k0 == '\x7F') {
-            if (eol && input.length > 0) {
-                input = input.substr(0, input.length - 1);
-                rubout();
-                return;
+            key = null;
+            let k0 = k.substr(0, 1);
+            xvt.terminator = null;
+            if (abort) {
+                abort = false;
+                break;
             }
-            else {
-                beep();
-                return;
-            }
-        }
-        if (k0 == '\x15' || k0 == '\x18') {
-            rubout(input.length);
-            input = '';
-            xvt.typeahead = '';
-            return;
-        }
-        if (k0 == '\r') {
-            if (!input.length && enter.length > 0) {
-                input = enter;
-                if (echo)
-                    out(input);
-            }
-            else if (input.length < entryMin) {
-                if (!echo)
-                    input = '';
-                beep();
-                return;
-            }
-            xvt.entry = input;
-            xvt.terminator = k0;
-            process.stdin.pause();
-            if (k.length > 1)
-                xvt.typeahead = k.substr(1);
-            return;
-        }
-        if (k0 < ' ') {
-            if (eol) {
-                if (cancel.length) {
-                    rubout(input.length);
-                    xvt.entry = cancel;
-                    out(xvt.entry);
-                }
+            if (enq) {
+                let i = k.indexOf('\x1B');
+                if (i >= 0)
+                    xvt.entry = k.substr(i);
                 else
-                    xvt.entry = input;
-                xvt.terminator = k;
+                    xvt.entry = k;
+                xvt.terminator = k0;
                 process.stdin.pause();
-                return;
+                break;
             }
-            let cook = 1;
-            xvt.terminator = `^${String.fromCharCode(k0.charCodeAt(0) + 64)}`;
-            if (k0 == '\x1B') {
-                rubout(input.length);
-                cook = 3;
-                switch (k.substr(1)) {
-                    case '[A':
-                        xvt.terminator = '[UP]';
-                        break;
-                    case '[B':
-                        xvt.terminator = '[DOWN]';
-                        break;
-                    case '[C':
-                        xvt.terminator = '[RIGHT]';
-                        break;
-                    case '[D':
-                        xvt.terminator = '[LEFT]';
-                        break;
-                    case '[11~':
-                        cook++;
-                    case '[1P':
-                        cook++;
-                    case 'OP':
-                        xvt.terminator = '[F1]';
-                        break;
-                    case '[12~':
-                        cook++;
-                    case '[1Q':
-                        cook++;
-                    case 'OQ':
-                        xvt.terminator = '[F2]';
-                        break;
-                    case '[13~':
-                        cook++;
-                    case '[1R':
-                        cook++;
-                    case 'OR':
-                        xvt.terminator = '[F3]';
-                        break;
-                    case '[14~':
-                        cook++;
-                    case '[1S':
-                        cook++;
-                    case 'OS':
-                        xvt.terminator = '[F4]';
-                        break;
-                    case '[15~':
-                        cook = 5;
-                        xvt.terminator = '[F5]';
-                        break;
-                    case '[17~':
-                        cook = 5;
-                        xvt.terminator = '[F6]';
-                        break;
-                    case '[18~':
-                        cook = 5;
-                        xvt.terminator = '[F7]';
-                        break;
-                    case '[19~':
-                        cook = 5;
-                        xvt.terminator = '[F8]';
-                        break;
-                    case '[20~':
-                        cook = 5;
-                        xvt.terminator = '[F9]';
-                        break;
-                    case '[21~':
-                        cook = 5;
-                        xvt.terminator = '[F10]';
-                        break;
-                    case '[23~':
-                        cook = 5;
-                        xvt.terminator = '[F11]';
-                        break;
-                    case '[24~':
-                        cook = 5;
-                        xvt.terminator = '[F12]';
-                        break;
-                    case '[1~':
-                    case '[7~':
-                        cook++;
-                    case '[H':
-                        xvt.terminator = '[HOME]';
-                        break;
-                    case '[2~':
-                        cook++;
-                        xvt.terminator = '[INSERT]';
-                        break;
-                    case '[3~':
-                        cook++;
-                        xvt.terminator = '[DELETE]';
-                        break;
-                    case '[4~':
-                    case '[8~':
-                        cook++;
-                    case '[F':
-                        xvt.terminator = '[END]';
-                        break;
-                    case '[5~':
-                        cook++;
-                        xvt.terminator = '[PGUP]';
-                        break;
-                    case '[6~':
-                        cook++;
-                        xvt.terminator = '[PGDN]';
-                        break;
-                    default:
-                        cook = 1;
-                        xvt.terminator = '[ESC]';
-                        break;
+            if (k.length > 1 && k0 >= ' ') {
+                const t = (entryMax || k.length) - input.length;
+                if (t > 1) {
+                    let load = k.substr(0, t - 1);
+                    const m = /[\x00-\x1F]/.exec(load);
+                    if (m && m.index)
+                        load = load.substr(0, m.index);
+                    if (echo)
+                        out(load);
+                    input += load;
+                    k = k.substr(load.length);
+                    k0 = k.substr(0, 1);
                 }
             }
-            xvt.entry = k.substr(0, cook);
-            xvt.typeahead = k.substr(cook);
-            process.stdin.pause();
-            return;
-        }
-        if (k.length > 1)
             xvt.typeahead = k.substr(1);
-        if (eol || lines) {
-            if (entryMax > 0 && input.length >= entryMax) {
-                beep();
-                if (lines && (line + 1) < lines) {
+            if (!k0)
+                continue;
+            if (k0 == '\x04' || k0 == '\x1A') {
+                outln(xvt.off, ' ** disconnect ** ');
+                xvt.reason = 'manual disconnect';
+                hangup();
+            }
+            if (k0 == '\b' || k0 == '\x7F') {
+                if (eol && input.length > 0) {
+                    input = input.substr(0, input.length - 1);
+                    rubout();
+                }
+                else if (lines && line > 0 && !input.length) {
                     xvt.entry = input;
-                    xvt.terminator = k0;
-                    if (k0 !== ' ') {
-                        let i = input.lastIndexOf(' ');
-                        if (i > 0) {
-                            rubout(input.substring(i).length);
-                            xvt.entry = input.substring(0, i);
-                            xvt.typeahead = input.substring(i + 1) + k0 + xvt.typeahead;
-                        }
-                    }
+                    xvt.terminator = '[UP]';
                     process.stdin.pause();
+                    break;
                 }
                 else
-                    xvt.typeahead = '';
-                return;
+                    beep();
+                continue;
             }
-            if (xvt.typeahead.length)
+            if (k0 == '\x15' || k0 == '\x18') {
+                rubout(input.length);
+                input = '';
+                continue;
+            }
+            if (k0 < ' ') {
+                let cook = 1;
+                xvt.terminator = `^${String.fromCharCode(k0.charCodeAt(0) + 64)}`;
+                if (k0 == '\x1B') {
+                    cook = 3;
+                    switch (k.substr(1)) {
+                        case '[A':
+                            xvt.terminator = '[UP]';
+                            break;
+                        case '[B':
+                            xvt.terminator = '[DOWN]';
+                            break;
+                        case '[C':
+                            xvt.terminator = '[RIGHT]';
+                            break;
+                        case '[D':
+                            xvt.terminator = '[LEFT]';
+                            break;
+                        case '[11~':
+                            cook++;
+                        case '[1P':
+                            cook++;
+                        case 'OP':
+                            xvt.terminator = '[F1]';
+                            break;
+                        case '[12~':
+                            cook++;
+                        case '[1Q':
+                            cook++;
+                        case 'OQ':
+                            xvt.terminator = '[F2]';
+                            break;
+                        case '[13~':
+                            cook++;
+                        case '[1R':
+                            cook++;
+                        case 'OR':
+                            xvt.terminator = '[F3]';
+                            break;
+                        case '[14~':
+                            cook++;
+                        case '[1S':
+                            cook++;
+                        case 'OS':
+                            xvt.terminator = '[F4]';
+                            break;
+                        case '[15~':
+                            cook = 5;
+                            xvt.terminator = '[F5]';
+                            break;
+                        case '[17~':
+                            cook = 5;
+                            xvt.terminator = '[F6]';
+                            break;
+                        case '[18~':
+                            cook = 5;
+                            xvt.terminator = '[F7]';
+                            break;
+                        case '[19~':
+                            cook = 5;
+                            xvt.terminator = '[F8]';
+                            break;
+                        case '[20~':
+                            cook = 5;
+                            xvt.terminator = '[F9]';
+                            break;
+                        case '[21~':
+                            cook = 5;
+                            xvt.terminator = '[F10]';
+                            break;
+                        case '[23~':
+                            cook = 5;
+                            xvt.terminator = '[F11]';
+                            break;
+                        case '[24~':
+                            cook = 5;
+                            xvt.terminator = '[F12]';
+                            break;
+                        case '[1~':
+                        case '[7~':
+                            cook++;
+                        case '[H':
+                            xvt.terminator = '[HOME]';
+                            break;
+                        case '[2~':
+                            cook++;
+                            xvt.terminator = '[INSERT]';
+                            break;
+                        case '[3~':
+                            cook++;
+                            xvt.terminator = '[DELETE]';
+                            break;
+                        case '[4~':
+                        case '[8~':
+                            cook++;
+                        case '[F':
+                            xvt.terminator = '[END]';
+                            break;
+                        case '[5~':
+                            cook++;
+                            xvt.terminator = '[PGUP]';
+                            break;
+                        case '[6~':
+                            cook++;
+                            xvt.terminator = '[PGDN]';
+                            break;
+                        default:
+                            cook = 1;
+                            xvt.terminator = '[ESC]';
+                            break;
+                    }
+                }
+                if (k0 == '\r')
+                    xvt.terminator = k0;
+                xvt.typeahead = k.substr(cook);
+                if (!input.length && enter.length > 0) {
+                    input = enter;
+                    if (echo)
+                        out(input);
+                }
+                else if (input.length < entryMin) {
+                    beep();
+                    rubout(input.length);
+                    input = '';
+                    continue;
+                }
+                xvt.entry = input;
+                input = '';
                 process.stdin.pause();
-        }
-        if (echo)
-            out(k0);
-        input += k0;
-        if (!eol && input.length >= entryMax) {
-            xvt.entry = input;
-            xvt.terminator = k0;
-            process.stdin.pause();
-        }
+                break;
+            }
+            if (eol || lines) {
+                if (entryMax > 0 && input.length >= entryMax) {
+                    beep();
+                    if (lines && (line + 1) < lines) {
+                        xvt.entry = input;
+                        if (k0 !== ' ') {
+                            let i = input.lastIndexOf(' ');
+                            if (i > 0) {
+                                rubout(input.substring(i).length);
+                                xvt.entry = input.substring(0, i);
+                                xvt.typeahead = input.substring(i + 1) + k0 + xvt.typeahead;
+                            }
+                        }
+                        xvt.terminator = '\r';
+                        process.stdin.pause();
+                        break;
+                    }
+                    continue;
+                }
+            }
+            if (echo)
+                out(k0);
+            input += k0;
+            if (!eol && input.length >= entryMax) {
+                xvt.entry = input;
+                xvt.terminator = k0;
+                process.stdin.pause();
+                break;
+            }
+        } while (xvt.typeahead);
     });
     process.on('SIGHUP', function () {
         outln(xvt.off, ' ** ', xvt.faint, 'hangup', xvt.off, ' ** ');
@@ -811,12 +827,10 @@ var xvt;
             xvt.waiting();
     });
     process.stdin.on('resume', () => {
-        if (abort) {
-            abort = false;
-            xvt.typeahead = '';
-        }
         if (xvt.typeahead)
             process.stdin.emit('data', '');
+        else
+            abort = false;
     });
     xvt.app = new session();
 })(xvt || (xvt = {}));

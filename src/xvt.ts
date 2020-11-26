@@ -244,6 +244,7 @@ module xvt {
 
             cancel = isDefined(p.cancel) ? p.cancel : ''
             enter = isDefined(p.enter) ? p.enter : ''
+            input = ''
 
             if (p.enq) {
                 enq = true
@@ -270,8 +271,8 @@ module xvt {
                 eol = false
                 enter = ' '
                 if (!isDefined(p.prompt)) p.prompt = '-pause-'
-                out('\r', reverse, p.prompt, reset)
-                abort = true
+                out(reverse, p.prompt, reset)
+                drain()
             }
             else {
                 echo = isDefined(p.echo) ? p.echo : true
@@ -281,8 +282,9 @@ module xvt {
                 out(...p.promptStyle)
                 if (isDefined(p.prompt)) out(p.prompt)
 
-                lines = isDefined(p.lines) ? p.lines : 0
+                lines = isDefined(p.lines) ? (p.lines > 1 ? p.lines : 2) : 0
                 if (lines) {
+                    eol = true
                     line = 0
                     outln()
                     out(bright, (line + 1).toString(), normal, '/', lines.toString(), faint, '] ', normal)
@@ -298,40 +300,54 @@ module xvt {
             eraser = isDefined(p.eraser) ? p.eraser : ' '
             idleTimeout = isDefined(p.timeout) ? p.timeout : defaultTimeout
             warn = isDefined(p.warn) ? p.warn : defaultWarn
-            input = ''
 
             if (row && col && echo && entryMax)
                 out(eraser.repeat(entryMax), '\b'.repeat(entryMax))
 
             await read()
-            out(reset)
 
             if (isDefined(p.match)) {
                 if (!p.match.test(entry)) {
-                    abort = true
+                    drain()
                     this.refocus()
                     return
                 }
             }
 
-            while (lines && line < lines) {
-                outln()
-                if (entry.length) multi[line++] = entry
-                if (entry.length && line < lines) {
+            if (isBoolean(p.pause)) rubout(7, true)
+
+            if (lines) {
+                do {
+                    multi[line] = entry
+                    if (terminator == '[UP]') {
+                        if (line) {
+                            out('\x1B[A')
+                            line--
+                        }
+                        out('\r')
+                    }
+                    else {
+                        outln()
+                        line++
+                        if (!entry.length || line == lines) {
+                            for (let i = line; i < lines; i++) {
+                                outln(cll)
+                                delete multi[i]
+                            }
+                            break
+                        }
+                    }
+
                     out(bright, (line + 1).toString(), normal, '/', lines.toString(), faint, '] ', normal)
                     out(...p.inputStyle)
-                    await read()
-                    out(reset)
-                }
-                else {
-                    entry = multi.join('\n')
-                    lines = 0
-                }
-            }
+                    input = multi[line] || ''
+                    out(input)
 
-            if (isBoolean(p.pause)) {
-                echo = true
-                out('\r', cll)
+                    await read()
+                } while (line < lines)
+                entry = multi.join('\n')
+                while(entry.substr(-1) == '\n')
+                    entry = entry.substr(0, entry.length-1)
             }
 
             p.cb()
@@ -502,6 +518,7 @@ module xvt {
 
     export function drain() {
         abort = true
+        typeahead = ''
     }
 
     export function out(...params) {
@@ -567,8 +584,9 @@ module xvt {
         xvt.col = col
     }
 
-    export function rubout(n = 1) {
-        if (echo) {
+    export function rubout(n = 1, erase?: boolean) {
+        if (!isDefined(erase)) erase = echo
+        if (erase) {
             out(`\b${eraser}\b`.repeat(n))
             col -= n
         }
@@ -624,15 +642,14 @@ module xvt {
                     retry = false
             })
         }
+        out(reset)
 
         if (!carrier || !retry) {
             //  any remaining cancel operations will take over, else bye-bye
             if (cancel.length)
-                terminator = '\x1B'
+                terminator = '[ESC]'
             else {
-                if (!carrier) {
-                }
-                else if (!retry) {
+                if (!retry) {
                     outln(off, ' ** ', faint, 'timeout', off, ' ** ')
                     reason = reason || 'fallen asleep'
                 }
@@ -641,7 +658,7 @@ module xvt {
             }
         }
 
-        if (cancel.length && terminator == '\x1B') {
+        if (cancel.length && terminator == '[ESC]') {
             rubout(input.length)
             entry = cancel
             out(entry)
@@ -659,246 +676,250 @@ module xvt {
 
     //  capture VT user input
     process.stdin.on('data', (key: Buffer) => {
-        let k: string
-        let k0: string
-        try {
-            k = typeahead + key.toString()
-            k0 = k.substr(0, 1)
+
+        do {
+            let k = typeahead + (key ? key.toString() : '')
             typeahead = ''
-        }
-        catch (err) {
-            console.log('stdin', err.name, ':', err.message)
-            console.log(k, k.split('').map((c) => { return c.charCodeAt(0) }))
-            return
-        }
+            key = null
+            let k0 = k.substr(0, 1)
+            terminator = null
 
-        // special ENQUIRY result
-        if (enq) {
-            entry = k
-            terminator = k0
-            console.log('enq terminated')
-            process.stdin.pause()
-            return
-        }
-
-        //  ctrl-d or ctrl-z disconnects session
-        if (k0 == '\x04' || k0 == '\x1A') {
-            outln(off, ' ** disconnect ** ')
-            reason = 'manual disconnect'
-            hangup()
-        }
-
-        //  rubout / delete
-        if (k0 == '\b' || k0 == '\x7F') {
-            if (eol && input.length > 0) {
-                input = input.substr(0, input.length - 1)
-                rubout()
-                return
+            if (abort) {
+                abort = false
+                break
             }
-            else {
-                beep()
-                return
-            }
-        }
 
-        //  ctrl-u or ctrl-x cancel typeahead
-        if (k0 == '\x15' || k0 == '\x18') {
-            rubout(input.length)
-            input = ''
-            typeahead = ''
-            return
-        }
-
-        //  any text entry mode requires <CR> as the input line terminator
-        if (k0 == '\r') {
-            if (!input.length && enter.length > 0) {
-                input = enter
-                if (echo) out(input)
-            }
-            else if (input.length < entryMin) {
-                if (!echo) input = ''
-                beep()
-                return
-            }
-            entry = input
-            terminator = k0
-            process.stdin.pause()
-            if (k.length > 1)
-                typeahead = k.substr(1)
-            return
-        }
-
-        //  eat other control keys
-        if (k0 < ' ') {
-            if (eol) {
-                if (cancel.length) {
-                    rubout(input.length)
-                    entry = cancel
-                    out(entry)
-                }
+            // special ENQUIRY result
+            if (enq) {
+                let i = k.indexOf('\x1B')
+                if (i >= 0)
+                    entry = k.substr(i)
                 else
-                    entry = input
-                terminator = k
+                    entry = k
+                terminator = k0
                 process.stdin.pause()
-                return
+                break
             }
-            //  let's cook for a special key event, if not prompting for a line of text
-            let cook = 1
-            terminator = `^${String.fromCharCode(k0.charCodeAt(0) + 64)}`
-            if (k0 == '\x1B') {
-                rubout(input.length)
-                cook = 3
-                switch (k.substr(1)) {
-                    case '[A':
-                        terminator = '[UP]'
-                        break
-                    case '[B':
-                        terminator = '[DOWN]'
-                        break
-                    case '[C':
-                        terminator = '[RIGHT]'
-                        break
-                    case '[D':
-                        terminator = '[LEFT]'
-                        break
-                    case '[11~':
-                        cook++
-                    case '[1P':
-                        cook++
-                    case 'OP':
-                        terminator = '[F1]'
-                        break
-                    case '[12~':
-                        cook++
-                    case '[1Q':
-                        cook++
-                    case 'OQ':
-                        terminator = '[F2]'
-                        break
-                    case '[13~':
-                        cook++
-                    case '[1R':
-                        cook++
-                    case 'OR':
-                        terminator = '[F3]'
-                        break
-                    case '[14~':
-                        cook++
-                    case '[1S':
-                        cook++
-                    case 'OS':
-                        terminator = '[F4]'
-                        break
-                    case '[15~':
-                        cook = 5
-                        terminator = '[F5]'
-                        break
-                    case '[17~':
-                        cook = 5
-                        terminator = '[F6]'
-                        break
-                    case '[18~':
-                        cook = 5
-                        terminator = '[F7]'
-                        break
-                    case '[19~':
-                        cook = 5
-                        terminator = '[F8]'
-                        break
-                    case '[20~':
-                        cook = 5
-                        terminator = '[F9]'
-                        break
-                    case '[21~':
-                        cook = 5
-                        terminator = '[F10]'
-                        break
-                    case '[23~':
-                        cook = 5
-                        terminator = '[F11]'
-                        break
-                    case '[24~':
-                        cook = 5
-                        terminator = '[F12]'
-                        break
-                    case '[1~':
-                    case '[7~':
-                        cook++
-                    case '[H':
-                        terminator = '[HOME]'
-                        break
-                    case '[2~':
-                        cook++
-                        terminator = '[INSERT]'
-                        break
-                    case '[3~':
-                        cook++
-                        terminator = '[DELETE]'
-                        break
-                    case '[4~':
-                    case '[8~':
-                        cook++
-                    case '[F':
-                        terminator = '[END]'
-                        break
-                    case '[5~':
-                        cook++
-                        terminator = '[PGUP]'
-                        break
-                    case '[6~':
-                        cook++
-                        terminator = '[PGDN]'
-                        break
-                    default:
-                        cook = 1
-                        terminator = '[ESC]'
-                        break
+
+            //  load input with any typeahead up to, but not including, the max (or control character)
+            if (k.length > 1 && k0 >= ' ') {
+                const t = (entryMax || k.length) - input.length
+                if (t > 1) {
+                    let load = k.substr(0, t - 1)
+                    const m = /[\x00-\x1F]/.exec(load)
+                    if (m && m.index) load = load.substr(0, m.index)
+                    if (echo) out(load)
+                    input += load
+                    k = k.substr(load.length)
+                    k0 = k.substr(0, 1)
                 }
             }
-            entry = k.substr(0, cook)
-            typeahead = k.substr(cook)
-            process.stdin.pause()
-            return
-        }
-
-        if (k.length > 1)
             typeahead = k.substr(1)
+            if (!k0) continue
 
-        if (eol || lines) {
-            //  don't exceed maximum input allowed
-            if (entryMax > 0 && input.length >= entryMax) {
-                beep()
-                if (lines && (line + 1) < lines) {
+            //  ctrl-d or ctrl-z disconnects session
+            if (k0 == '\x04' || k0 == '\x1A') {
+                outln(off, ' ** disconnect ** ')
+                reason = 'manual disconnect'
+                hangup()
+            }
+
+            //  rubout / delete
+            if (k0 == '\b' || k0 == '\x7F') {
+                if (eol && input.length > 0) {
+                    input = input.substr(0, input.length - 1)
+                    rubout()
+                }
+                else if (lines && line > 0 && !input.length) {
                     entry = input
-                    terminator = k0
-                    //  word-wrap if this entry will overflow into next line
-                    if (k0 !== ' ') {
-                        let i = input.lastIndexOf(' ')
-                        if (i > 0) {
-                            rubout(input.substring(i).length)
-                            entry = input.substring(0, i)
-                            typeahead = input.substring(i + 1) + k0 + typeahead
-                        }
-                    }
+                    terminator = '[UP]'
                     process.stdin.pause()
+                    break
                 }
                 else
-                    typeahead = ''
-                return
+                    beep()
+                continue
             }
-            if (typeahead.length)
+
+            //  ctrl-u or ctrl-x cancel typeahead
+            if (k0 == '\x15' || k0 == '\x18') {
+                rubout(input.length)
+                input = ''
+                continue
+            }
+
+            //  eat control keys
+            if (k0 < ' ') {
+                //  let's cook for a special key event
+                let cook = 1
+                terminator = `^${String.fromCharCode(k0.charCodeAt(0) + 64)}`
+                if (k0 == '\x1B') {
+                    cook = 3
+                    switch (k.substr(1)) {
+                        case '[A':
+                            terminator = '[UP]'
+                            break
+                        case '[B':
+                            terminator = '[DOWN]'
+                            break
+                        case '[C':
+                            terminator = '[RIGHT]'
+                            break
+                        case '[D':
+                            terminator = '[LEFT]'
+                            break
+                        case '[11~':
+                            cook++
+                        case '[1P':
+                            cook++
+                        case 'OP':
+                            terminator = '[F1]'
+                            break
+                        case '[12~':
+                            cook++
+                        case '[1Q':
+                            cook++
+                        case 'OQ':
+                            terminator = '[F2]'
+                            break
+                        case '[13~':
+                            cook++
+                        case '[1R':
+                            cook++
+                        case 'OR':
+                            terminator = '[F3]'
+                            break
+                        case '[14~':
+                            cook++
+                        case '[1S':
+                            cook++
+                        case 'OS':
+                            terminator = '[F4]'
+                            break
+                        case '[15~':
+                            cook = 5
+                            terminator = '[F5]'
+                            break
+                        case '[17~':
+                            cook = 5
+                            terminator = '[F6]'
+                            break
+                        case '[18~':
+                            cook = 5
+                            terminator = '[F7]'
+                            break
+                        case '[19~':
+                            cook = 5
+                            terminator = '[F8]'
+                            break
+                        case '[20~':
+                            cook = 5
+                            terminator = '[F9]'
+                            break
+                        case '[21~':
+                            cook = 5
+                            terminator = '[F10]'
+                            break
+                        case '[23~':
+                            cook = 5
+                            terminator = '[F11]'
+                            break
+                        case '[24~':
+                            cook = 5
+                            terminator = '[F12]'
+                            break
+                        case '[1~':
+                        case '[7~':
+                            cook++
+                        case '[H':
+                            terminator = '[HOME]'
+                            break
+                        case '[2~':
+                            cook++
+                            terminator = '[INSERT]'
+                            break
+                        case '[3~':
+                            cook++
+                            terminator = '[DELETE]'
+                            break
+                        case '[4~':
+                        case '[8~':
+                            cook++
+                        case '[F':
+                            terminator = '[END]'
+                            break
+                        case '[5~':
+                            cook++
+                            terminator = '[PGUP]'
+                            break
+                        case '[6~':
+                            cook++
+                            terminator = '[PGDN]'
+                            break
+                        default:
+                            cook = 1
+                            terminator = '[ESC]'
+                            break
+                    }
+                }
+                if (k0 == '\r')
+                    terminator = k0
+
+                typeahead = k.substr(cook)
+
+                if (!input.length && enter.length > 0) {
+                    input = enter
+                    if (echo) out(input)
+                }
+                else if (input.length < entryMin) {
+                    beep()
+                    rubout(input.length)
+                    input = ''
+                    continue
+                }
+
+                entry = input
+                input = ''
                 process.stdin.pause()
-        }
+                break
+            }
 
-        if (echo) out(k0)
-        input += k0
+            //  line mode input
+            if (eol || lines) {
+                //  don't exceed maximum input allowed
+                if (entryMax > 0 && input.length >= entryMax) {
+                    beep()
+                    if (lines && (line + 1) < lines) {
+                        entry = input
+                        //  word-wrap if this entry will overflow into next line
+                        if (k0 !== ' ') {
+                            let i = input.lastIndexOf(' ')
+                            if (i > 0) {
+                                rubout(input.substring(i).length)
+                                entry = input.substring(0, i)
+                                typeahead = input.substring(i + 1) + k0 + typeahead
+                            }
+                        }
+                        terminator = '\r'
+                        process.stdin.pause()
+                        break
+                    }
+                    continue
+                }
+            }
 
-        //  terminate entry if input size is met
-        if (!eol && input.length >= entryMax) {
-            entry = input
-            terminator = k0
-            process.stdin.pause()
-        }
+            //  character mode input
+            if (echo) out(k0)
+            input += k0
+
+            //  terminate entry if input size is met
+            if (!eol && input.length >= entryMax) {
+                entry = input
+                terminator = k0
+                process.stdin.pause()
+                break
+            }
+        } while (typeahead)
     })
 
 
@@ -924,15 +945,12 @@ module xvt {
         if (waiting) waiting()
     })
 
+    //  make stdin immediately aware of any input pending
     process.stdin.on('resume', () => {
-        //  abort any input pending
-        if (abort) {
-            abort = false
-            typeahead = ''
-        }
-        //  make event handler immediately aware of input pending
         if (typeahead)
             process.stdin.emit('data', '')
+        else
+            abort = false
     })
 
 
