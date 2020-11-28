@@ -87,8 +87,15 @@ var xvt;
     }
     xvt.hangup = hangup;
     function sleep(ms) {
-        if (xvt.carrier)
-            spawn.execSync(`sleep ${ms / 1000}`);
+        if (ms > 0) {
+            ms += 10;
+            const t = ms > 20 ? ms - 20 : 0;
+            if (xvt.carrier)
+                try {
+                    spawn.execSync(`sleep ${t / 1000}`, { stdio: 'ignore', timeout: ms });
+                }
+                catch (err) { }
+        }
     }
     xvt.sleep = sleep;
     class session {
