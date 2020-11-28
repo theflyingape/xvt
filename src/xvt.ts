@@ -124,8 +124,14 @@ module xvt {
     }
 
     export function sleep(ms: number) {
-        if (carrier)
-            spawn.execSync(`sleep ${ms / 1000}`)
+        if (ms > 0) {
+            ms += 10    //  pad for spawn() overhead
+            const t = ms > 20 ? ms - 20 : 0
+            if (carrier) try {
+                spawn.execSync(`sleep ${t / 1000}`, { stdio:'ignore', timeout:ms })
+            }
+            catch(err) {}
+        }
     }
 
 
