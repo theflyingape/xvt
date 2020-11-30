@@ -84,7 +84,6 @@ declare module xvt {
     let sessionStart: Date;
     let terminator: string;
     let typeahead: string;
-    let waiting: Function;
     function hangup(): void;
     function sleep(ms: number): void;
     class session {

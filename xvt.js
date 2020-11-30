@@ -70,6 +70,8 @@ var xvt;
     xvt.sessionStart = null;
     xvt.terminator = null;
     xvt.typeahead = '';
+    let pad = 5;
+    let waiting;
     function hangup() {
         if (xvt.ondrop)
             xvt.ondrop();
@@ -88,13 +90,17 @@ var xvt;
     xvt.hangup = hangup;
     function sleep(ms) {
         if (ms > 0) {
-            ms += 10;
-            const t = ms > 20 ? ms - 20 : 0;
+            const t = ms > 2 * pad ? ms - pad : pad;
             if (xvt.carrier)
                 try {
                     spawn.execSync(`sleep ${t / 1000}`, { stdio: 'ignore', timeout: ms });
                 }
-                catch (err) { }
+                catch (err) {
+                    if (err.code == 'ETIMEDOUT')
+                        ms++;
+                    else
+                        console.error(err);
+                }
         }
     }
     xvt.sleep = sleep;
@@ -210,7 +216,6 @@ var xvt;
                     cancel = ' ';
                     echo = false;
                     eol = false;
-                    enter = ' ';
                     if (!class_validator_1.isDefined(p.prompt))
                         p.prompt = '-pause-';
                     out(xvt.reverse, p.prompt, xvt.reset);
@@ -544,7 +549,7 @@ var xvt;
                 if (xvt.sessionAllowed && (elapsed - (xvt.sessionStart.getTime() / 1000)) > xvt.sessionAllowed) {
                     outln(xvt.off, ' ** ', xvt.bright, 'your session expired', xvt.off, ' ** ');
                     xvt.reason = xvt.reason || 'got exhausted';
-                    xvt.carrier = false;
+                    hangup();
                 }
             }
             else
@@ -552,7 +557,7 @@ var xvt;
             const idle = xvt.idleTimeout ? xvt.idleTimeout * (warn ? 500 : 1000) : 2147483647;
             xvt.entry = '';
             xvt.terminator = null;
-            while (retry) {
+            while (retry && class_validator_1.isEmpty(xvt.terminator)) {
                 yield forInput(idle).catch(() => {
                     beep();
                     retry = xvt.carrier && warn;
@@ -562,7 +567,8 @@ var xvt;
                         if (cancel.length) {
                             rubout(input.length);
                             xvt.entry = cancel;
-                            out(xvt.entry);
+                            if (echo)
+                                out(xvt.entry);
                             xvt.terminator = '[ESC]';
                         }
                         else {
@@ -578,11 +584,11 @@ var xvt;
             out(xvt.reset);
             function forInput(ms) {
                 return new Promise((resolve, reject) => {
-                    xvt.waiting = () => { resolve(xvt.terminator); };
+                    waiting = () => { resolve(xvt.terminator); };
                     if (process.stdin.isPaused)
                         process.stdin.resume();
                     setTimeout(reject, xvt.carrier ? ms : 6);
-                }).finally(() => { xvt.waiting = null; });
+                }).finally(() => { waiting = null; });
             }
         });
     }
@@ -825,8 +831,8 @@ var xvt;
         hangup();
     });
     process.stdin.on('pause', () => {
-        if (xvt.waiting)
-            xvt.waiting();
+        if (waiting)
+            waiting();
     });
     process.stdin.on('resume', () => {
         if (xvt.typeahead)

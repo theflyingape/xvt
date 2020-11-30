@@ -40,20 +40,20 @@ module main {
 				xvt.outln('\nXT: ', xvt.app.Empty, xvt.app.Draw)
 
 				xvt.app.focus = 'pause'
-			}, prompt: '\x1B[6n', enq: true
+			}, cancel:'\x05', prompt: '\x1B[6n', enq: true
 		},
 		'pause': {
 			cb: () => {
-				xvt.outln('\nPress any key including function and control keys.  RETURN when done.')
+				xvt.outln('\nPress any key including function and control keys.  RETURN or ESCape when done.')
 				xvt.app.focus = 'cook'
 			}, pause: true, timeout: 10
 		},
 		'cook': {
 			cb: () => {
-				if (xvt.terminator !== '\r')
-					xvt.out(`You pressed '${xvt.terminator}' = `, xvt.entry.split('').map((c) => { return c.charCodeAt(0) }))
-				xvt.app.focus = xvt.terminator == '\r' ? 'username' : 'cook'
-			}, cancel: ' ', echo: false,  eol: false, timeout: 20
+				xvt.out(`You pressed '${xvt.terminator == '\r' ? '[CR]' : xvt.terminator}' = `
+					, xvt.entry.split('').map((c) => { return c.charCodeAt(0) }))
+				xvt.app.focus = xvt.terminator == '\r' || xvt.terminator == '[ESC]' ? 'username' : 'cook'
+			}, cancel:' ', echo: false,  eol: false, timeout: 20
 		},
 		'username': { cb: login, prompt: 'Username: ', min: 3, max: 10 },
 		'password': { cb: password, echo: false, min: 4, timeout: 15 }

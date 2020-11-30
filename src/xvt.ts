@@ -102,7 +102,9 @@ module xvt {
     export let sessionStart: Date = null
     export let terminator: string = null
     export let typeahead: string = ''
-    export let waiting: Function
+
+    let pad: number = 5
+    let waiting: Function
 
     //  session support functions
     export function hangup() {
@@ -125,12 +127,16 @@ module xvt {
 
     export function sleep(ms: number) {
         if (ms > 0) {
-            ms += 10    //  pad for spawn() overhead
-            const t = ms > 20 ? ms - 20 : 0
+            const t = ms > 2 * pad ? ms - pad : pad
             if (carrier) try {
                 spawn.execSync(`sleep ${t / 1000}`, { stdio:'ignore', timeout:ms })
             }
-            catch(err) {}
+            catch(err) {
+                if (err.code == 'ETIMEDOUT')
+                    ms++
+                else
+                    console.error(err)
+            }
         }
     }
 
@@ -275,7 +281,6 @@ module xvt {
                 cancel = ' '
                 echo = false
                 eol = false
-                enter = ' '
                 if (!isDefined(p.prompt)) p.prompt = '-pause-'
                 out(reverse, p.prompt, reset)
                 drain()
@@ -629,7 +634,7 @@ module xvt {
             if (sessionAllowed && (elapsed - (sessionStart.getTime() / 1000)) > sessionAllowed) {
                 outln(off, ' ** ', bright, 'your session expired', off, ' ** ')
                 reason = reason || 'got exhausted'
-                carrier = false
+                hangup()
             }
         }
         else
@@ -639,7 +644,7 @@ module xvt {
         entry = ''
         terminator = null
 
-        while (retry) {
+        while (retry && isEmpty(terminator)) {
             await forInput(idle).catch(() => {
                 beep()
                 retry = carrier && warn
@@ -649,7 +654,7 @@ module xvt {
                     if (cancel.length) {
                         rubout(input.length)
                         entry = cancel
-                        out(entry)
+                        if (echo) out(entry)
                         terminator = '[ESC]'
                     }
                     else {
