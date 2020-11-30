@@ -538,55 +538,50 @@ var xvt;
     let warn = xvt.defaultWarn;
     function read() {
         return __awaiter(this, void 0, void 0, function* () {
-            const idle = xvt.idleTimeout ? xvt.idleTimeout * (warn ? 500 : 1000) : 2147483647;
             let elapsed = new Date().getTime() / 1000 >> 0;
             let retry = true;
-            xvt.entry = '';
-            xvt.terminator = null;
             if (xvt.carrier) {
-                elapsed = new Date().getTime() / 1000 >> 0;
                 if (xvt.sessionAllowed && (elapsed - (xvt.sessionStart.getTime() / 1000)) > xvt.sessionAllowed) {
                     outln(xvt.off, ' ** ', xvt.bright, 'your session expired', xvt.off, ' ** ');
                     xvt.reason = xvt.reason || 'got exhausted';
                     xvt.carrier = false;
                 }
             }
-            while (xvt.carrier && retry && class_validator_1.isEmpty(xvt.terminator)) {
+            else
+                warn = false;
+            const idle = xvt.idleTimeout ? xvt.idleTimeout * (warn ? 500 : 1000) : 2147483647;
+            xvt.entry = '';
+            xvt.terminator = null;
+            while (retry) {
                 yield forInput(idle).catch(() => {
-                    if (class_validator_1.isEmpty(xvt.terminator) && retry && warn) {
-                        beep();
-                        retry = warn;
+                    beep();
+                    retry = xvt.carrier && warn;
+                    if (retry)
                         warn = false;
+                    else {
+                        if (cancel.length) {
+                            rubout(input.length);
+                            xvt.entry = cancel;
+                            out(xvt.entry);
+                            xvt.terminator = '[ESC]';
+                        }
+                        else {
+                            if (xvt.carrier) {
+                                outln(xvt.off, ' ** ', xvt.faint, 'timeout', xvt.off, ' ** ');
+                                xvt.reason = xvt.reason || 'fallen asleep';
+                            }
+                            hangup();
+                        }
                     }
-                    else
-                        retry = false;
                 });
             }
             out(xvt.reset);
-            if (!xvt.carrier || !retry) {
-                if (cancel.length)
-                    xvt.terminator = '[ESC]';
-                else {
-                    if (!retry) {
-                        outln(xvt.off, ' ** ', xvt.faint, 'timeout', xvt.off, ' ** ');
-                        xvt.reason = xvt.reason || 'fallen asleep';
-                    }
-                    beep();
-                    hangup();
-                }
-            }
-            if (cancel.length && xvt.terminator == '[ESC]') {
-                rubout(input.length);
-                xvt.entry = cancel;
-                out(xvt.entry);
-                xvt.terminator = '\r';
-            }
             function forInput(ms) {
                 return new Promise((resolve, reject) => {
                     xvt.waiting = () => { resolve(xvt.terminator); };
                     if (process.stdin.isPaused)
                         process.stdin.resume();
-                    setTimeout(reject, xvt.carrier ? ms : 0);
+                    setTimeout(reject, xvt.carrier ? ms : 6);
                 }).finally(() => { xvt.waiting = null; });
             }
         });

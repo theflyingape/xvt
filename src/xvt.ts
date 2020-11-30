@@ -622,60 +622,54 @@ module xvt {
     let warn: boolean = defaultWarn
 
     export async function read() {
-        const idle = idleTimeout ? idleTimeout * (warn ? 500 : 1000) : 2147483647
         let elapsed = new Date().getTime() / 1000 >> 0
         let retry = true
-        entry = ''
-        terminator = null
 
         if (carrier) {
-            elapsed = new Date().getTime() / 1000 >> 0
             if (sessionAllowed && (elapsed - (sessionStart.getTime() / 1000)) > sessionAllowed) {
                 outln(off, ' ** ', bright, 'your session expired', off, ' ** ')
                 reason = reason || 'got exhausted'
                 carrier = false
             }
         }
+        else
+            warn = false
 
-        while (carrier && retry && isEmpty(terminator)) {
+        const idle = idleTimeout ? idleTimeout * (warn ? 500 : 1000) : 2147483647
+        entry = ''
+        terminator = null
+
+        while (retry) {
             await forInput(idle).catch(() => {
-                if (isEmpty(terminator) && retry && warn) {
-                    beep()
-                    retry = warn
+                beep()
+                retry = carrier && warn
+                if (retry)
                     warn = false
+                else {
+                    if (cancel.length) {
+                        rubout(input.length)
+                        entry = cancel
+                        out(entry)
+                        terminator = '[ESC]'
+                    }
+                    else {
+                        if (carrier) {
+                            outln(off, ' ** ', faint, 'timeout', off, ' ** ')
+                            reason = reason || 'fallen asleep'
+                        }
+                        hangup()
+                    }
                 }
-                else
-                    retry = false
             })
         }
         out(reset)
 
-        if (!carrier || !retry) {
-            //  any remaining cancel operations will take over, else bye-bye
-            if (cancel.length)
-                terminator = '[ESC]'
-            else {
-                if (!retry) {
-                    outln(off, ' ** ', faint, 'timeout', off, ' ** ')
-                    reason = reason || 'fallen asleep'
-                }
-                beep()
-                hangup()
-            }
-        }
-
-        if (cancel.length && terminator == '[ESC]') {
-            rubout(input.length)
-            entry = cancel
-            out(entry)
-            terminator = '\r'
-        }
 
         function forInput(ms: number) {
             return new Promise((resolve, reject) => {
                 waiting = () => { resolve(terminator) }
                 if (process.stdin.isPaused) process.stdin.resume()
-                setTimeout(reject, carrier ? ms : 0)
+                setTimeout(reject, carrier ? ms : 6)
             }).finally(() => { waiting = null })
         }
     }
