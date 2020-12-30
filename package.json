@@ -1,5 +1,5 @@
 {
-  "name": "xvt",
+  "name": "@theflyingape/xvt",
   "version": "1.3.6",
   "description": "an asynchronous terminal session handler",
   "main": "./xvt.js",
