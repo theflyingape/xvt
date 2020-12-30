@@ -6,8 +6,6 @@ declare module xvt {
         row?: number;
         col?: number;
         prompt?: string;
-        promptStyle?: any[];
-        inputStyle?: any[];
         cancel?: string;
         enter?: string;
         eraser?: string;
@@ -19,6 +17,7 @@ declare module xvt {
         eol?: boolean;
         lines?: number;
         pause?: boolean;
+        delay?: number;
         timeout?: number;
         warn?: boolean;
     }

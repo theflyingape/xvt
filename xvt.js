@@ -193,6 +193,7 @@ var xvt;
             return __awaiter(this, void 0, void 0, function* () {
                 let p = this._fields[this.focus];
                 cancel = class_validator_1.isDefined(p.cancel) ? p.cancel : '';
+                delay = class_validator_1.isDefined(p.delay) ? p.delay : 0;
                 enter = class_validator_1.isDefined(p.enter) ? p.enter : '';
                 input = '';
                 if (p.enq) {
@@ -224,9 +225,6 @@ var xvt;
                 else {
                     echo = class_validator_1.isDefined(p.echo) ? p.echo : true;
                     eol = class_validator_1.isDefined(p.eol) ? p.eol : true;
-                    if (!class_validator_1.isDefined(p.promptStyle))
-                        p.promptStyle = defaultPromptStyle;
-                    out(...p.promptStyle);
                     if (class_validator_1.isDefined(p.prompt))
                         out(p.prompt);
                     lines = class_validator_1.isDefined(p.lines) ? (p.lines > 1 ? p.lines : 2) : 0;
@@ -237,9 +235,7 @@ var xvt;
                         out(xvt.bright, (line + 1).toString(), xvt.normal, '/', lines.toString(), xvt.faint, '] ', xvt.normal);
                         multi = [];
                     }
-                    if (!class_validator_1.isDefined(p.inputStyle))
-                        p.inputStyle = defaultInputStyle;
-                    out(...p.inputStyle);
+                    out(xvt.defaultColor, xvt.bright);
                 }
                 entryMin = class_validator_1.isDefined(p.min) ? p.min : 0;
                 entryMax = class_validator_1.isDefined(p.max) ? p.max : (lines ? 72 : eol ? 0 : 1);
@@ -280,7 +276,7 @@ var xvt;
                             }
                         }
                         out(xvt.bright, (line + 1).toString(), xvt.normal, '/', lines.toString(), xvt.faint, '] ', xvt.normal);
-                        out(...p.inputStyle);
+                        out(xvt.defaultColor, xvt.bright);
                         input = multi[line] || '';
                         out(input);
                         yield read();
@@ -527,8 +523,7 @@ var xvt;
     xvt.rubout = rubout;
     let abort = false;
     let cancel = '';
-    let defaultInputStyle = [xvt.bright, xvt.white];
-    let defaultPromptStyle = [xvt.cyan];
+    let delay = 0;
     let echo = true;
     let enq = false;
     let enter = '';
@@ -557,6 +552,8 @@ var xvt;
             const idle = xvt.idleTimeout ? xvt.idleTimeout * (warn ? 500 : 1000) : 2147483647;
             xvt.entry = '';
             xvt.terminator = null;
+            if (delay)
+                sleep(delay);
             while (retry && class_validator_1.isEmpty(xvt.terminator)) {
                 yield forInput(idle).catch(() => {
                     beep();
