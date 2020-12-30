@@ -18,8 +18,6 @@ module xvt {
         row?: number
         col?: number
         prompt?: string
-        promptStyle?: any[] //  attr() parameters for prompt
-        inputStyle?: any[]  //  attr() parameters for input
         cancel?: string     //  return on ESC or timeout
         enter?: string      //  return on empty input
         eraser?: string     //  with echo, masking character to use
@@ -31,7 +29,8 @@ module xvt {
         eol?: boolean       //  requires user to terminate input
         lines?: number      //  multiple line entry
         pause?: boolean     //  press any key to continue
-        timeout?: number    //  in seconds
+        delay?: number      //  in seconds, return enter
+        timeout?: number    //  in seconds, return cancel or timeout exception
         warn?: boolean      //  send bell if entry timeout is halfway to expired
     }
 
@@ -255,6 +254,7 @@ module xvt {
             let p = this._fields[this.focus]
 
             cancel = isDefined(p.cancel) ? p.cancel : ''
+            delay = isDefined(p.delay) ? p.delay : 0
             enter = isDefined(p.enter) ? p.enter : ''
             input = ''
 
@@ -289,8 +289,6 @@ module xvt {
                 echo = isDefined(p.echo) ? p.echo : true
                 eol = isDefined(p.eol) ? p.eol : true
 
-                if (!isDefined(p.promptStyle)) p.promptStyle = defaultPromptStyle
-                out(...p.promptStyle)
                 if (isDefined(p.prompt)) out(p.prompt)
 
                 lines = isDefined(p.lines) ? (p.lines > 1 ? p.lines : 2) : 0
@@ -302,8 +300,7 @@ module xvt {
                     multi = []
                 }
 
-                if (!isDefined(p.inputStyle)) p.inputStyle = defaultInputStyle
-                out(...p.inputStyle)
+                out(defaultColor, bright)
             }
 
             entryMin = isDefined(p.min) ? p.min : 0
@@ -350,7 +347,7 @@ module xvt {
                     }
 
                     out(bright, (line + 1).toString(), normal, '/', lines.toString(), faint, '] ', normal)
-                    out(...p.inputStyle)
+                    out(defaultColor, bright)
                     input = multi[line] || ''
                     out(input)
 
@@ -611,8 +608,7 @@ module xvt {
     //  runtime field prompt registers
     let abort: boolean = false
     let cancel: string = ''
-    let defaultInputStyle: any = [bright, white]
-    let defaultPromptStyle: any = [cyan]
+    let delay: number = 0
     let echo: boolean = true
     let enq: boolean = false
     let enter: string = ''
@@ -643,6 +639,8 @@ module xvt {
         const idle = idleTimeout ? idleTimeout * (warn ? 500 : 1000) : 2147483647
         entry = ''
         terminator = null
+
+        if (delay) sleep(delay)
 
         while (retry && isEmpty(terminator)) {
             await forInput(idle).catch(() => {
