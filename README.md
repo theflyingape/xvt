@@ -1,39 +1,12 @@
 # xvt
 
-*an asynchronous terminal session handler from the app's shell*
+*an asynchronous terminal session handler*
 
-Check it out online where this is used to run a classic BBS: [Dank Domain](https://play.ddgame.us)
+xvt class an be initialized for either input & output or for output only
 
-## Example
+xvt input designed to work akin to a browser `<form>` element
 
-```javascript
-import xvt = require('xvt')
-
-xvt.app.form = {
-    'username': { cb:login, prompt:'Username: ', min:3, max:10 },
-    'password': { cb:password, echo:false, min:6, timeout:300 }
-    'email': { cb:email, prompt:'E-mail: ' },
-    1: { cb:fight, prompt:'<A>ttack, <C>ast a spell, or <R>etreat: ', enter:'a', eol:false, match:/A|C|R/i },
-    2: { cb:pause1, pause:true },
-}
-
-xvt.app.focus = 'username'
-```
-
-`class-validator` is loaded to assist with user input validation functions:
-
-```javascript
-function email() {
-    if (xvt.validator.isEmail(xvt.entry)) {
-        xvt.out('\nThat email address looks OK by me.')
-        xvt.app.focus = 1
-    }
-    else
-        xvt.app.refocus()
-}
-```
-
-Terminal emulator conveniences:
+xvt output supports your app's terminal emulator needs:
 
 * `dumb` - plain ASCII
 * `VT` - VT220 monochrome 7-bit controls
@@ -49,3 +22,36 @@ for (let e in emulation) {
     xvt.outln(xvt.reset, ' - ', xvt.bright, 'bold ', xvt.normal, 'normal ', xvt.blink, 'flash ', xvt.noblink, xvt.faint, 'dim')
 }
 ```
+
+## Demo
+
+Check it out online where this is used to run a classic BBS: [Dank Domain](https://play.ddgame.us)
+
+Or install it locally and run its demo from a shell:
+
+```bash
+$ npm install xvt
+$ cd node_modules/xvt
+$ npm run demo
+```
+
+## Example snippet
+
+```javascript
+import { io } from 'xvt'
+const io = new xvt()
+
+io.outln(io.clear, io.magenta, io.bright, 'Hello, world!')
+
+io.form = {
+    0: { cb: { io.focus = 'username' }, pause:true },
+    'username': { cb: {
+            const username = io.entry
+            io.focus = 'password'
+        }, prompt:'Username: ', min:3, max:10 },
+    'password': { cb: password, echo:false, min:6, timeout:300 }
+    1: { cb: fight, prompt: '<A>ttack, <C>ast a spell, or <R>etreat: ', enter:'a', eol:false, match:/A|C|R/i },
+}
+```
+
+*Note:* form will autofocus if there is a field 0 defined in it.  Else, app sets form field focus manually.
