@@ -60,4 +60,3 @@ function password() {
     io_1.io.out('\nPassword entered was "', io_1.io.entry, '"\n');
     require('./module2');
 }
-//# sourceMappingURL=index.js.map

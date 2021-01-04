@@ -1,2 +1,2 @@
-import { xvt } from '../xvt'
+import { xvt } from '../lib/xvt'
 export const io = new xvt()

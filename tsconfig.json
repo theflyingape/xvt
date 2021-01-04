@@ -1,16 +1,15 @@
 {
   "compilerOptions": {
+    "outDir": "lib",
     "target": "ES2018",
     "module": "commonjs",
     "moduleResolution": "node",
     "declaration": true,
-    "outDir": "..",
     "removeComments": true,
     "preserveConstEnums": true,
     "pretty": true,
-    "sourceMap": true
+    "sourceMap": false
   },
-  "exclude": [
-	  "node_modules",
-  ]
+  "exclude": [ "node_modules" ],
+  "include": [ "src" ]
 }

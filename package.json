@@ -2,18 +2,19 @@
   "name": "@theflyingape/xvt",
   "version": "1.4.0",
   "description": "an asynchronous terminal session handler",
-  "main": "./xvt.js",
-  "types": "./xvt.d.ts",
-  "devDependencies": {
-    "@types/node": "^14.14.17",
-    "typescript": "^4.1.2"
-  },
   "os": [
     "cros",
     "linux"
   ],
+  "main": "./lib/xvt.js",
+  "types": "./lib/xvt.d.ts",
+  "devDependencies": {
+    "@types/node": "^14.14.17",
+    "typescript": "^4.1.2"
+  },
+  "files": [ "lib" ],
   "scripts": {
-    "build": "./tsc -p ./src",
+    "build": "./tsc",
     "demo": "./tsc -p ./demo --outDir ./demo; node ./demo/index",
     "test": "exit 0"
   },
@@ -27,10 +28,9 @@
   "homepage": "https://robert.hurst-ri.us",
   "keywords": [
     "ansi",
-    "cli",
-    "interactive",
-    "terminal",
-    "vt100"
+    "emulation",
+    "forms",
+    "terminal"
   ],
   "author": "Robert Hurst",
   "license": "MIT"

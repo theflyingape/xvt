@@ -51,4 +51,3 @@ var module2;
     io_1.io.focus = 1;
 })(module2 || (module2 = {}));
 module.exports = module2;
-//# sourceMappingURL=module2.js.map

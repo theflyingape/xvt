@@ -1,4 +1,3 @@
-import { xvt } from '../xvt'
 import { io } from './io'
 
 module module2 {

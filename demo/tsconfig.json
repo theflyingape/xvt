@@ -1,13 +1,14 @@
 {
   "compilerOptions": {
-    "target": "ES2015",
+    "target": "ES2018",
     "module": "commonjs",
     "moduleResolution": "node",
     "declaration": false,
     "outDir": ".",
     "removeComments": true,
     "preserveConstEnums": true,
-    "sourceMap": true
+    "pretty": true,
+    "sourceMap": false
   },
   "exclude": [
     "node_modules"
