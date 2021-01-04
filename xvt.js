@@ -1,15 +1,5 @@
 "use strict";
-var __awaiter = (this && this.__awaiter) || function (thisArg, _arguments, P, generator) {
-    function adopt(value) { return value instanceof P ? value : new P(function (resolve) { resolve(value); }); }
-    return new (P || (P = Promise))(function (resolve, reject) {
-        function fulfilled(value) { try { step(generator.next(value)); } catch (e) { reject(e); } }
-        function rejected(value) { try { step(generator["throw"](value)); } catch (e) { reject(e); } }
-        function step(result) { result.done ? resolve(result.value) : adopt(result.value).then(fulfilled, rejected); }
-        step((generator = generator.apply(thisArg, _arguments || [])).next());
-    });
-};
 Object.defineProperty(exports, "__esModule", { value: true });
-exports.xvt = void 0;
 class xvt {
     constructor(e = 'XT', init = true, log = true, form = null) {
         this.reset = 0;
@@ -426,156 +416,152 @@ class xvt {
             this.refocus();
         }
     }
-    _read() {
-        return __awaiter(this, void 0, void 0, function* () {
-            let p = this._fields[this.focus];
-            this.cancel = p.cancel || '';
-            this.delay = p.delay || 0;
-            this.enter = p.enter || '';
-            this.input = '';
-            if (p.enq) {
-                this.enq = true;
-                this.warn = false;
-                this.out(p.prompt);
-                this.idleTimeout = 5;
-                yield this.read();
-                p.cb();
-                return;
-            }
-            this.out(this.reset);
-            let row = p.row || 0;
-            let col = p.col || 0;
-            if (row && col)
-                this.plot(row, col);
-            else
-                this.outln();
-            if (p.pause) {
-                this.cancel = '^';
-                this.echo = false;
-                this.eol = false;
-                if (!p.prompt)
-                    p.prompt = '-pause-';
-                if (this.col > 1)
-                    this.outln();
-                this.out(this.reverse, p.prompt, this.reset);
-                this.drain();
-            }
-            else {
-                this.echo = typeof p.echo == 'boolean' ? p.echo : true;
-                this.eol = typeof p.eol == 'boolean' ? p.eol : true;
-                if (p.prompt)
-                    this.out(p.prompt);
-                this.lines = (p.lines || 0) > 1 ? 2 : 0;
-                if (this.lines) {
-                    this.eol = true;
-                    this.line = 0;
-                    this.outln();
-                    this.out(this.bright, (this.line + 1).toString(), this.normal, '/', this.lines.toString(), this.faint, '] ', this.normal);
-                    this.multi = [];
-                }
-                this.out(this.defaultColor, this.bright);
-            }
-            this.entryMin = p.min || 0;
-            this.entryMax = p.max || (this.lines ? 72 : this.eol ? 0 : 1);
-            this.eraser = p.eraser || ' ';
-            this.idleTimeout = p.timeout || this.defaultTimeout;
-            this.warn = p.warn || this.defaultWarn;
-            if (row && col && this.echo && this.entryMax)
-                this.out(this.eraser.repeat(this.entryMax), '\b'.repeat(this.entryMax));
-            yield this.read();
-            if (p.match && !p.match.test(this.entry)) {
-                this.drain();
-                this.refocus();
-                return;
-            }
-            if (p.pause)
-                this.rubout(7, true);
-            if (this.lines) {
-                do {
-                    this.multi[this.line] = this.entry;
-                    if (this.terminator == '[UP]') {
-                        if (this.line) {
-                            this.out('\x1B[A');
-                            this.line--;
-                        }
-                        this.out('\r');
-                    }
-                    else {
-                        this.outln();
-                        this.line++;
-                        if (!this.entry.length || this.line == this.lines) {
-                            for (let i = this.line; i < this.lines; i++) {
-                                this.outln(this.cll);
-                                delete this.multi[i];
-                            }
-                            break;
-                        }
-                    }
-                    this.out(this.bright, (this.line + 1).toString(), this.normal, '/', this.lines.toString(), this.faint, '] ', this.normal);
-                    this.out(this.defaultColor, this.bright);
-                    this.input = this.multi[this.line] || '';
-                    this.out(this.input);
-                    yield this.read();
-                } while (this.line < this.lines);
-                this.entry = this.multi.join('\n');
-                while (this.entry.substr(-1) == '\n')
-                    this.entry = this.entry.substr(0, this.entry.length - 1);
-            }
+    async _read() {
+        let p = this._fields[this.focus];
+        this.cancel = p.cancel || '';
+        this.delay = p.delay || 0;
+        this.enter = p.enter || '';
+        this.input = '';
+        if (p.enq) {
+            this.enq = true;
+            this.warn = false;
+            this.out(p.prompt);
+            this.idleTimeout = 5;
+            await this.read();
             p.cb();
-        });
-    }
-    read() {
-        return __awaiter(this, void 0, void 0, function* () {
-            let elapsed = new Date().getTime() / 1000 >> 0;
-            let retry = true;
-            if (this.carrier) {
-                if (this.sessionAllowed && (elapsed - (this.sessionStart.getTime() / 1000)) > this.sessionAllowed) {
-                    this.outln(this.off, ' ** ', this.bright, 'your session expired', this.off, ' ** ');
-                    this.reason = this.reason || 'got exhausted';
-                    this.hangup();
-                }
+            return;
+        }
+        this.out(this.reset);
+        let row = p.row || 0;
+        let col = p.col || 0;
+        if (row && col)
+            this.plot(row, col);
+        else
+            this.outln();
+        if (p.pause) {
+            this.cancel = '^';
+            this.echo = false;
+            this.eol = false;
+            if (!p.prompt)
+                p.prompt = '-pause-';
+            if (this.col > 1)
+                this.outln();
+            this.out(this.reverse, p.prompt, this.reset);
+            this.drain();
+        }
+        else {
+            this.echo = typeof p.echo == 'boolean' ? p.echo : true;
+            this.eol = typeof p.eol == 'boolean' ? p.eol : true;
+            if (p.prompt)
+                this.out(p.prompt);
+            this.lines = (p.lines || 0) > 1 ? 2 : 0;
+            if (this.lines) {
+                this.eol = true;
+                this.line = 0;
+                this.outln();
+                this.out(this.bright, (this.line + 1).toString(), this.normal, '/', this.lines.toString(), this.faint, '] ', this.normal);
+                this.multi = [];
             }
-            else
-                this.warn = false;
-            const idle = this.idleTimeout ? this.idleTimeout * (this.warn ? 500 : 1000) : 2147483647;
-            this.entry = '';
-            this.terminator = null;
-            if (this.delay)
-                this.sleep(this.delay);
-            while (retry && !this.terminator) {
-                yield forInput(this, idle).catch(() => {
-                    this.beep();
-                    retry = this.carrier && this.warn;
-                    if (retry)
-                        this.warn = false;
-                    else {
-                        if (this.cancel.length) {
-                            this.rubout(this.input.length);
-                            this.entry = this.cancel;
-                            if (this.echo)
-                                this.out(this.entry);
-                            this.terminator = '[ESC]';
-                        }
-                        else {
-                            if (this.carrier) {
-                                this.outln(this.off, ' ** ', this.faint, 'timeout', this.off, ' ** ');
-                                this.reason = this.reason || 'fallen asleep';
-                            }
-                            this.hangup();
-                        }
+            this.out(this.defaultColor, this.bright);
+        }
+        this.entryMin = p.min || 0;
+        this.entryMax = p.max || (this.lines ? 72 : this.eol ? 0 : 1);
+        this.eraser = p.eraser || ' ';
+        this.idleTimeout = p.timeout || this.defaultTimeout;
+        this.warn = p.warn || this.defaultWarn;
+        if (row && col && this.echo && this.entryMax)
+            this.out(this.eraser.repeat(this.entryMax), '\b'.repeat(this.entryMax));
+        await this.read();
+        if (p.match && !p.match.test(this.entry)) {
+            this.drain();
+            this.refocus();
+            return;
+        }
+        if (p.pause)
+            this.rubout(7, true);
+        if (this.lines) {
+            do {
+                this.multi[this.line] = this.entry;
+                if (this.terminator == '[UP]') {
+                    if (this.line) {
+                        this.out('\x1B[A');
+                        this.line--;
                     }
-                });
+                    this.out('\r');
+                }
+                else {
+                    this.outln();
+                    this.line++;
+                    if (!this.entry.length || this.line == this.lines) {
+                        for (let i = this.line; i < this.lines; i++) {
+                            this.outln(this.cll);
+                            delete this.multi[i];
+                        }
+                        break;
+                    }
+                }
+                this.out(this.bright, (this.line + 1).toString(), this.normal, '/', this.lines.toString(), this.faint, '] ', this.normal);
+                this.out(this.defaultColor, this.bright);
+                this.input = this.multi[this.line] || '';
+                this.out(this.input);
+                await this.read();
+            } while (this.line < this.lines);
+            this.entry = this.multi.join('\n');
+            while (this.entry.substr(-1) == '\n')
+                this.entry = this.entry.substr(0, this.entry.length - 1);
+        }
+        p.cb();
+    }
+    async read() {
+        let elapsed = new Date().getTime() / 1000 >> 0;
+        let retry = true;
+        if (this.carrier) {
+            if (this.sessionAllowed && (elapsed - (this.sessionStart.getTime() / 1000)) > this.sessionAllowed) {
+                this.outln(this.off, ' ** ', this.bright, 'your session expired', this.off, ' ** ');
+                this.reason = this.reason || 'got exhausted';
+                this.hangup();
             }
-            this.out(this.reset);
-            function forInput(io, ms) {
-                return new Promise((resolve, reject) => {
-                    io._waiting = () => { resolve(io.terminator); };
-                    if (process.stdin.isPaused)
-                        process.stdin.resume();
-                    setTimeout(reject, io.carrier ? ms : io._pad);
-                }).finally(() => { io._waiting = null; });
-            }
-        });
+        }
+        else
+            this.warn = false;
+        const idle = this.idleTimeout ? this.idleTimeout * (this.warn ? 500 : 1000) : 2147483647;
+        this.entry = '';
+        this.terminator = null;
+        if (this.delay)
+            this.sleep(this.delay);
+        while (retry && !this.terminator) {
+            await forInput(this, idle).catch(() => {
+                this.beep();
+                retry = this.carrier && this.warn;
+                if (retry)
+                    this.warn = false;
+                else {
+                    if (this.cancel.length) {
+                        this.rubout(this.input.length);
+                        this.entry = this.cancel;
+                        if (this.echo)
+                            this.out(this.entry);
+                        this.terminator = '[ESC]';
+                    }
+                    else {
+                        if (this.carrier) {
+                            this.outln(this.off, ' ** ', this.faint, 'timeout', this.off, ' ** ');
+                            this.reason = this.reason || 'fallen asleep';
+                        }
+                        this.hangup();
+                    }
+                }
+            });
+        }
+        this.out(this.reset);
+        function forInput(io, ms) {
+            return new Promise((resolve, reject) => {
+                io._waiting = () => { resolve(io.terminator); };
+                if (process.stdin.isPaused)
+                    process.stdin.resume();
+                setTimeout(reject, io.carrier ? ms : io._pad);
+            }).finally(() => { io._waiting = null; });
+        }
     }
     refocus(prompt) {
         if (prompt)
@@ -847,5 +833,5 @@ class xvt {
         }
     }
 }
-exports.xvt = xvt;
+exports.default = xvt;
 //# sourceMappingURL=xvt.js.map

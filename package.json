@@ -13,7 +13,7 @@
     "linux"
   ],
   "scripts": {
-    "build": "./tsc",
+    "build": "./tsc -p ./src",
     "demo": "./tsc -p ./demo --outDir ./demo; node ./demo/index",
     "test": "exit 0"
   },

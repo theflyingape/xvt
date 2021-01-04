@@ -1,29 +1,5 @@
 /// <reference types="node" />
-declare type emulator = 'dumb' | 'VT' | 'PC' | 'XT';
-interface Field {
-    cb: Function;
-    row?: number;
-    col?: number;
-    prompt?: string;
-    cancel?: string;
-    enter?: string;
-    eraser?: string;
-    min?: number;
-    max?: number;
-    match?: RegExp;
-    echo?: boolean;
-    enq?: boolean;
-    eol?: boolean;
-    lines?: number;
-    pause?: boolean;
-    delay?: number;
-    timeout?: number;
-    warn?: boolean;
-}
-interface iField {
-    [key: string]: Field;
-}
-export declare class xvt {
+export default class xvt {
     readonly reset = 0;
     readonly bright = 1;
     readonly faint = 2;
@@ -153,4 +129,3 @@ export declare class xvt {
     refocus(prompt?: string): void;
     stdio(log: boolean): void;
 }
-export {};
