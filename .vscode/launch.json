@@ -7,18 +7,17 @@
     {
       "type": "node",
       "request": "launch",
-      "name": "Launch Program",
+      "name": "launch Demo",
       "console": "integratedTerminal",
       "skipFiles": [
         "<node_internals>/**"
       ],
-      "program": "${workspaceFolder}/test/main.js",
-      "preLaunchTask": "tsc: build - tsconfig.json",
+      "program": "${workspaceFolder}/demo/index.js",
       "outFiles": [
         "${workspaceFolder}/./**/*.js"
       ],
       "sourceMaps": true,
-      "stopOnEntry": false
+      "stopOnEntry": true
     }
   ]
 }

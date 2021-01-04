@@ -5,9 +5,5 @@
         "**/.hg": true,
         "**/.DS_Store": true,
         "**/*.map": true
-    },
-    "html.format.enable": false,
-    "html.format.wrapLineLength": 0,
-    "javascript.format.enable": false,
-    "typescript.format.enable": false
+    }
 }

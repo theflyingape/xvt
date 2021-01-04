@@ -8,836 +8,844 @@ var __awaiter = (this && this.__awaiter) || function (thisArg, _arguments, P, ge
         step((generator = generator.apply(thisArg, _arguments || [])).next());
     });
 };
-const spawn = require('child_process');
-const class_validator_1 = require("class-validator");
-var xvt;
-(function (xvt) {
-    xvt.reset = 0;
-    xvt.bright = 1;
-    xvt.faint = 2;
-    xvt.uline = 4;
-    xvt.blink = 5;
-    xvt.reverse = 7;
-    xvt.off = 20;
-    xvt.nobright = 21;
-    xvt.normal = 22;
-    xvt.nouline = 24;
-    xvt.noblink = 25;
-    xvt.noreverse = 27;
-    xvt.black = 30;
-    xvt.red = 31;
-    xvt.green = 32;
-    xvt.yellow = 33;
-    xvt.blue = 34;
-    xvt.magenta = 35;
-    xvt.cyan = 36;
-    xvt.white = 37;
-    xvt.Black = 40;
-    xvt.Red = 41;
-    xvt.Green = 42;
-    xvt.Yellow = 43;
-    xvt.Blue = 44;
-    xvt.Magenta = 45;
-    xvt.Cyan = 46;
-    xvt.White = 47;
-    xvt.lblack = 90;
-    xvt.lred = 91;
-    xvt.lgreen = 92;
-    xvt.lyellow = 93;
-    xvt.lblue = 94;
-    xvt.lmagenta = 95;
-    xvt.lcyan = 96;
-    xvt.lwhite = 97;
-    xvt.lBlack = 100;
-    xvt.lRed = 101;
-    xvt.lGreen = 102;
-    xvt.lYellow = 103;
-    xvt.lBlue = 104;
-    xvt.lMagenta = 105;
-    xvt.lCyan = 106;
-    xvt.lWhite = 107;
-    xvt.cll = 254;
-    xvt.clear = 255;
-    xvt.carrier = false;
-    xvt.modem = false;
-    xvt.reason = '';
-    xvt.defaultColor = xvt.white;
-    xvt.defaultTimeout = 0;
-    xvt.defaultWarn = true;
-    xvt.entry = '';
-    xvt.idleTimeout = 0;
-    xvt.sessionAllowed = 0;
-    xvt.sessionStart = null;
-    xvt.terminator = null;
-    xvt.typeahead = '';
-    let pad = 5;
-    let waiting;
-    function hangup() {
-        if (xvt.ondrop)
-            xvt.ondrop();
-        xvt.ondrop = null;
-        if (xvt.carrier && xvt.modem) {
-            out(xvt.off, '+', -125, '+', -125, '+', -250);
-            outln('\nOK');
-            out(-400, 'ATH\r', -300);
-            beep();
-            outln('\n', -200, 'NO CARRIER');
-            sleep(100);
+Object.defineProperty(exports, "__esModule", { value: true });
+exports.xvt = void 0;
+class xvt {
+    constructor(e = 'XT', init = true, log = true, form = null) {
+        this.reset = 0;
+        this.bright = 1;
+        this.faint = 2;
+        this.uline = 4;
+        this.blink = 5;
+        this.reverse = 7;
+        this.off = 20;
+        this.nobright = 21;
+        this.normal = 22;
+        this.nouline = 24;
+        this.noblink = 25;
+        this.noreverse = 27;
+        this.black = 30;
+        this.red = 31;
+        this.green = 32;
+        this.yellow = 33;
+        this.blue = 34;
+        this.magenta = 35;
+        this.cyan = 36;
+        this.white = 37;
+        this.Black = 40;
+        this.Red = 41;
+        this.Green = 42;
+        this.Yellow = 43;
+        this.Blue = 44;
+        this.Magenta = 45;
+        this.Cyan = 46;
+        this.White = 47;
+        this.lblack = 90;
+        this.lred = 91;
+        this.lgreen = 92;
+        this.lyellow = 93;
+        this.lblue = 94;
+        this.lmagenta = 95;
+        this.lcyan = 96;
+        this.lwhite = 97;
+        this.lBlack = 100;
+        this.lRed = 101;
+        this.lGreen = 102;
+        this.lYellow = 103;
+        this.lBlue = 104;
+        this.lMagenta = 105;
+        this.lCyan = 106;
+        this.lWhite = 107;
+        this.cll = 254;
+        this.clear = 255;
+        this.carrier = false;
+        this.modem = false;
+        this.ondrop = null;
+        this.reason = '';
+        this.defaultColor = this.white;
+        this.defaultTimeout = 0;
+        this.defaultWarn = true;
+        this.entry = '';
+        this.idleTimeout = 0;
+        this.sessionAllowed = 0;
+        this.sessionStart = null;
+        this.terminator = null;
+        this.typeahead = '';
+        this.col = 0;
+        this.row = 0;
+        this._col = 0;
+        this._color = 0;
+        this._bold = false;
+        this._dim = false;
+        this._ul = false;
+        this._flash = false;
+        this._row = 0;
+        this._rvs = false;
+        this._SGR = '';
+        this._text = '';
+        this.abort = false;
+        this.cancel = '';
+        this.delay = 0;
+        this.echo = true;
+        this.enq = false;
+        this.enter = '';
+        this.entryMin = 0;
+        this.entryMax = 0;
+        this.eol = true;
+        this.eraser = ' ';
+        this.input = '';
+        this.line = 0;
+        this.lines = 0;
+        this.warn = this.defaultWarn;
+        this._pad = 4;
+        this._waiting = null;
+        this.carrier = true;
+        this.emulation = e;
+        this.sessionStart = new Date();
+        if (init)
+            this.stdio(log);
+        if (form)
+            this.form = form;
+    }
+    get emulation() {
+        return this._emulation;
+    }
+    set emulation(e) {
+        this._encoding = e == 'XT' ? 'utf8' : 'ascii';
+        process.stdin.setEncoding(this.encoding);
+        process.stdout.setEncoding(this.encoding);
+        this._emulation = e;
+    }
+    get encoding() {
+        return this._encoding;
+    }
+    get LGradient() {
+        return {
+            VT: '\x1B(0\x1B[2ma\x1B[ma\x1B[7m \x1B[1m \x1B[27m\x1B(B',
+            PC: '\xB0\xB1\xB2\xDB',
+            XT: '\u2591\u2592\u2593\u2588',
+            dumb: ' :: '
+        }[this._emulation];
+    }
+    get RGradient() {
+        return {
+            VT: '\x1B(0\x1B[1;7m \x1B[22m \x1B[ma\x1B[2ma\x1B[m\x1B(B',
+            PC: '\xDB\xB2\xB1\xB0',
+            XT: '\u2588\u2593\u2592\u2591',
+            dumb: ' :: '
+        }[this._emulation];
+    }
+    get Draw() {
+        return {
+            VT: ['q', 'm', 'v', 'j', 't', 'n', 'u', 'l', 'w', 'k', 'x'],
+            PC: ['\xC4', '\xC0', '\xC1', '\xD9', '\xC3', '\xC5', '\xB4', '\xDA', '\xC2', '\xBF', '\xB3'],
+            XT: ['\u2500', '\u2514', '\u2534', '\u2518', '\u251C', '\u253C', '\u2524', '\u250C', '\u252C', '\u2510', '\u2502'],
+            dumb: ['-', '+', '^', '+', '>', '+', '<', '+', 'v', '+', '|']
+        }[this._emulation];
+    }
+    get Empty() {
+        return {
+            VT: '\x1B(0\x7E\x1B(B',
+            PC: '\xFA',
+            XT: '\u00B7',
+            dumb: '.'
+        }[this._emulation];
+    }
+    SGR(attr) {
+        if (this.emulation !== 'dumb') {
+            if (this._SGR == '')
+                this._SGR = '\x1B[';
+            else
+                attr = ';' + attr;
+            this._SGR += attr;
         }
-        xvt.carrier = false;
+    }
+    text(s = '') {
+        if (this._SGR.length) {
+            this._text += this._SGR + 'm';
+            this._SGR = '';
+        }
+        if (s) {
+            this._text += s;
+            this.col += s.length;
+        }
+        else {
+            const result = this._text;
+            this._text = '';
+            return result;
+        }
+        return this._text;
+    }
+    attr(...params) {
+        params.forEach(data => {
+            if (typeof data == 'number') {
+                if (data < 0) {
+                    this.out(this.text());
+                    this.sleep(-data);
+                }
+                else if (this.emulation !== 'dumb') {
+                    switch (data) {
+                        case this.cll:
+                            this.text('\x1B[K');
+                            break;
+                        case this.clear:
+                            this.text('\x1B[H\x1B[J');
+                            this.row = 1;
+                            this.col = 1;
+                            break;
+                        case this.off:
+                            this.color = this.defaultColor;
+                        case this.reset:
+                            if (this.color || this.bold || this.dim || this.ul || this.flash || this.rvs) {
+                                this._SGR = '';
+                                this.text('\x1B[m');
+                            }
+                            this.color = 0;
+                            this.bold = false;
+                            this.dim = false;
+                            this.ul = false;
+                            this.flash = false;
+                            this.rvs = false;
+                            break;
+                        case this.bright:
+                            if (this.dim) {
+                                this.SGR(this.normal);
+                                this.bold = false;
+                                this.dim = false;
+                            }
+                            if (!this.bold) {
+                                this.SGR(this.bright);
+                                if (!this.color) {
+                                    this.color = this.defaultColor;
+                                    this.SGR(this.color);
+                                }
+                            }
+                            this.bold = true;
+                            break;
+                        case this.faint:
+                            if (this.bold) {
+                                this.SGR(this.normal);
+                                this.bold = false;
+                                this.dim = false;
+                            }
+                            if (!this.dim)
+                                this.SGR(this.faint);
+                            this.dim = true;
+                            break;
+                        case this.nobright:
+                            if (this.bold)
+                                this.SGR(this.nobright);
+                            this.bold = false;
+                            break;
+                        case this.normal:
+                            if (this.bold || this.dim) {
+                                this.SGR(this.normal);
+                                this.bold = false;
+                                this.dim = false;
+                            }
+                            break;
+                        case this.uline:
+                            if (!this.ul)
+                                this.SGR(this.uline);
+                            this.ul = true;
+                            break;
+                        case this.nouline:
+                            if (this.ul)
+                                this.SGR(this.nouline);
+                            this.ul = false;
+                            break;
+                        case this.blink:
+                            if (!this.flash)
+                                this.SGR(this.blink);
+                            this.flash = true;
+                            break;
+                        case this.noblink:
+                            if (this.flash)
+                                this.SGR(this.noblink);
+                            this.flash = false;
+                            break;
+                        case this.reverse:
+                            if (!this.rvs)
+                                this.SGR(this.reverse);
+                            this.rvs = true;
+                            break;
+                        case this.noreverse:
+                            if (this.rvs)
+                                this.SGR(this.noreverse);
+                            this.rvs = false;
+                            break;
+                        default:
+                            this.color = data;
+                            if (data >= this.black && data <= this.white || data >= this.lblack && data <= this.lwhite)
+                                if (this.emulation !== 'VT')
+                                    this.SGR(data);
+                            if (data >= this.Black && data <= this.White || data >= this.lBlack && data <= this.lWhite) {
+                                if (this.emulation !== 'VT')
+                                    this.SGR(data);
+                                else {
+                                    if (!this.rvs)
+                                        this.SGR(this.reverse);
+                                    this.rvs = true;
+                                }
+                            }
+                            break;
+                    }
+                }
+                else if (data == this.clear) {
+                    this.text('\f');
+                    this.row = 1;
+                    this.col = 1;
+                }
+            }
+            else {
+                this.text(data);
+                if (typeof data == 'string') {
+                    let lines = data.split('\n');
+                    if (lines.length > 1) {
+                        this.row += lines.length - 1;
+                        this.col = lines[lines.length - 1].length + 1;
+                    }
+                }
+            }
+        });
+        return this.text();
+    }
+    beep() {
+        this.out('\x07');
+    }
+    drain() {
+        this.abort = true;
+        if (this.typeahead && process.stdin.isPaused)
+            process.stdin.resume();
+    }
+    hangup() {
+        if (this.ondrop)
+            this.ondrop();
+        this.ondrop = null;
+        if (this.carrier && this.modem) {
+            this.out(this.off, '+', -125, '+', -125, '+', -250);
+            this.outln('\nOK');
+            this.out(-400, 'ATH\r', -300);
+            this.beep();
+            this.outln('\n', -200, 'NO CARRIER');
+            this.sleep(100);
+        }
+        this.carrier = false;
         process.exit();
     }
-    xvt.hangup = hangup;
-    function sleep(ms) {
+    out(...params) {
+        try {
+            if (this.carrier)
+                process.stdout.write(this.attr(...params), this.encoding);
+        }
+        catch (err) {
+            this.carrier = false;
+        }
+    }
+    outln(...params) {
+        this.out(this.attr(...params), this.reset, '\n');
+    }
+    pause(nextField, timeout = this.defaultTimeout, cb) {
+        const save = this.form;
+        this.form = {
+            0: { cb: () => {
+                    if (cb)
+                        cb();
+                    this.form = save;
+                    this.focus = nextField;
+                }, pause: true, timeout: timeout }
+        };
+    }
+    plot(row = 1, col = 1) {
+        this.out(`\x1B[${row};${col}H`);
+        this.row = row;
+        this.col = col;
+    }
+    restore() {
+        this.out(this.emulation == 'VT' ? '\x1B8' : '\x1B[u');
+        this.col = this._col;
+        this.color = this._color;
+        this.bold = this._bold;
+        this.dim = this._dim;
+        this.ul = this._ul;
+        this.flash = this._flash;
+        this.row = this._row;
+        this.rvs = this._rvs;
+    }
+    rubout(n = 1, erase = this.echo) {
+        if (erase) {
+            this.out(`\b${this.eraser}\b`.repeat(n));
+            this.col -= n;
+        }
+    }
+    save() {
+        this.out(this.emulation == 'VT' ? '\x1B7' : '\x1B[s');
+        this._col = this.col;
+        this._color = this.color;
+        this._bold = this.bold;
+        this._dim = this.dim;
+        this._ul = this.ul;
+        this._flash = this.flash;
+        this._row = this.row;
+        this._rvs = this.rvs;
+    }
+    sleep(ms) {
         if (ms > 0) {
-            const t = ms > 2 * pad ? ms - pad : pad;
-            if (xvt.carrier)
+            const t = ms > this._pad ? ms - this._pad : this._pad;
+            if (this.carrier)
                 try {
-                    spawn.execSync(`sleep ${t / 1000}`, { stdio: 'ignore', timeout: ms });
+                    require('child_process').execSync(`sleep ${t / 1000}`, { stdio: 'ignore', timeout: ms });
                 }
                 catch (err) {
                     if (err.code == 'ETIMEDOUT')
-                        ms++;
+                        this._pad++;
                     else
                         console.error(err);
                 }
         }
     }
-    xvt.sleep = sleep;
-    class session {
-        constructor(e = 'XT') {
-            xvt.carrier = true;
-            if (process.stdin.isTTY)
-                process.stdin.setRawMode(true);
-            this.emulation = e;
-            xvt.sessionStart = new Date();
-        }
-        get emulation() {
-            return this._emulation;
-        }
-        set emulation(e) {
-            this._encoding = e == 'XT' ? 'utf8' : 'ascii';
-            process.stdin.setEncoding(this.encoding);
-            process.stdout.setEncoding(this.encoding);
-            this._emulation = e;
-        }
-        get encoding() {
-            return this._encoding;
-        }
-        get LGradient() {
-            return {
-                VT: '\x1B(0\x1B[2ma\x1B[ma\x1B[7m \x1B[1m \x1B[27m\x1B(B',
-                PC: '\xB0\xB1\xB2\xDB',
-                XT: '\u2591\u2592\u2593\u2588',
-                dumb: ' :: '
-            }[this._emulation];
-        }
-        get RGradient() {
-            return {
-                VT: '\x1B(0\x1B[1;7m \x1B[22m \x1B[ma\x1B[2ma\x1B[m\x1B(B',
-                PC: '\xDB\xB2\xB1\xB0',
-                XT: '\u2588\u2593\u2592\u2591',
-                dumb: ' :: '
-            }[this._emulation];
-        }
-        get Draw() {
-            return {
-                VT: ['q', 'm', 'v', 'j', 't', 'n', 'u', 'l', 'w', 'k', 'x'],
-                PC: ['\xC4', '\xC0', '\xC1', '\xD9', '\xC3', '\xC5', '\xB4', '\xDA', '\xC2', '\xBF', '\xB3'],
-                XT: ['\u2500', '\u2514', '\u2534', '\u2518', '\u251C', '\u253C', '\u2524', '\u250C', '\u252C', '\u2510', '\u2502'],
-                dumb: ['-', '+', '^', '+', '>', '+', '<', '+', 'v', '+', '|']
-            }[this._emulation];
-        }
-        get Empty() {
-            return {
-                VT: '\x1B(0\x7E\x1B(B',
-                PC: '\xFA',
-                XT: '\u00B7',
-                dumb: '.'
-            }[this._emulation];
-        }
-        get form() {
-            return this._fields;
-        }
-        set form(name) {
-            this._fields = name;
-        }
-        get focus() {
-            return this._focus;
-        }
-        set focus(name) {
-            let p = this._fields[name];
-            if (!class_validator_1.isDefined(p)) {
-                beep();
-                outln(xvt.off, xvt.red, '?', xvt.bright, 'ERROR', xvt.defaultColor, ` in xvt.app.form :: field '${name}' undefined`);
-                this.refocus();
-                return;
-            }
+    get form() {
+        return this._fields || null;
+    }
+    set form(name) {
+        this._fields = name;
+        if (this._fields[0])
+            this.focus = 0;
+    }
+    get focus() {
+        return this._focus;
+    }
+    set focus(name) {
+        if (this._fields[name]) {
             this._focus = name;
             this._read();
         }
-        nofocus(keep = false) {
-            echo = keep;
-            entryMin = 0;
-            entryMax = 0;
-            eol = false;
-            this._focus = null;
-        }
-        refocus(prompt) {
-            if (class_validator_1.isDefined(prompt))
-                this._fields[this.focus].prompt = prompt;
-            if (class_validator_1.isNotEmpty(this._focus))
-                this.focus = this.focus;
-        }
-        _read() {
-            return __awaiter(this, void 0, void 0, function* () {
-                let p = this._fields[this.focus];
-                cancel = class_validator_1.isDefined(p.cancel) ? p.cancel : '';
-                delay = class_validator_1.isDefined(p.delay) ? p.delay : 0;
-                enter = class_validator_1.isDefined(p.enter) ? p.enter : '';
-                input = '';
-                if (p.enq) {
-                    enq = true;
-                    warn = false;
-                    out(p.prompt);
-                    xvt.idleTimeout = 5;
-                    yield read();
-                    enq = false;
-                    p.cb();
-                    return;
-                }
-                out(xvt.reset);
-                let row = class_validator_1.isDefined(p.row) ? p.row : 0;
-                let col = class_validator_1.isDefined(p.col) ? p.col : 0;
-                if (row && col)
-                    plot(row, col);
-                else
-                    outln();
-                if (p.pause) {
-                    cancel = ' ';
-                    echo = false;
-                    eol = false;
-                    if (!class_validator_1.isDefined(p.prompt))
-                        p.prompt = '-pause-';
-                    out(xvt.reverse, p.prompt, xvt.reset);
-                    drain();
-                }
-                else {
-                    echo = class_validator_1.isDefined(p.echo) ? p.echo : true;
-                    eol = class_validator_1.isDefined(p.eol) ? p.eol : true;
-                    if (class_validator_1.isDefined(p.prompt))
-                        out(p.prompt);
-                    lines = class_validator_1.isDefined(p.lines) ? (p.lines > 1 ? p.lines : 2) : 0;
-                    if (lines) {
-                        eol = true;
-                        line = 0;
-                        outln();
-                        out(xvt.bright, (line + 1).toString(), xvt.normal, '/', lines.toString(), xvt.faint, '] ', xvt.normal);
-                        multi = [];
-                    }
-                    out(xvt.defaultColor, xvt.bright);
-                }
-                entryMin = class_validator_1.isDefined(p.min) ? p.min : 0;
-                entryMax = class_validator_1.isDefined(p.max) ? p.max : (lines ? 72 : eol ? 0 : 1);
-                eraser = class_validator_1.isDefined(p.eraser) ? p.eraser : ' ';
-                xvt.idleTimeout = class_validator_1.isDefined(p.timeout) ? p.timeout : xvt.defaultTimeout;
-                warn = class_validator_1.isDefined(p.warn) ? p.warn : xvt.defaultWarn;
-                if (row && col && echo && entryMax)
-                    out(eraser.repeat(entryMax), '\b'.repeat(entryMax));
-                yield read();
-                if (class_validator_1.isDefined(p.match)) {
-                    if (!p.match.test(xvt.entry)) {
-                        drain();
-                        this.refocus();
-                        return;
-                    }
-                }
-                if (class_validator_1.isBoolean(p.pause))
-                    rubout(7, true);
-                if (lines) {
-                    do {
-                        multi[line] = xvt.entry;
-                        if (xvt.terminator == '[UP]') {
-                            if (line) {
-                                out('\x1B[A');
-                                line--;
-                            }
-                            out('\r');
-                        }
-                        else {
-                            outln();
-                            line++;
-                            if (!xvt.entry.length || line == lines) {
-                                for (let i = line; i < lines; i++) {
-                                    outln(xvt.cll);
-                                    delete multi[i];
-                                }
-                                break;
-                            }
-                        }
-                        out(xvt.bright, (line + 1).toString(), xvt.normal, '/', lines.toString(), xvt.faint, '] ', xvt.normal);
-                        out(xvt.defaultColor, xvt.bright);
-                        input = multi[line] || '';
-                        out(input);
-                        yield read();
-                    } while (line < lines);
-                    xvt.entry = multi.join('\n');
-                    while (xvt.entry.substr(-1) == '\n')
-                        xvt.entry = xvt.entry.substr(0, xvt.entry.length - 1);
-                }
-                p.cb();
-            });
+        else {
+            this.beep();
+            this.outln(this.off, this.red, '?', this.bright, `xvt form ${name} error: `, this.reset, `field '${name}' undefined`);
+            this.refocus();
         }
     }
-    xvt.session = session;
-    xvt.col = 0;
-    xvt.row = 0;
-    let _col = 0;
-    let _color = 0;
-    let _bold = false;
-    let _dim = false;
-    let _ul = false;
-    let _flash = false;
-    let _row = 0;
-    let _rvs = false;
-    let _SGR = '';
-    let _text = '';
-    function attr(...params) {
-        let result = '';
-        params.forEach(data => {
-            if (typeof data == 'number') {
-                if (data < 0) {
-                    text();
-                    result = _text;
-                    _text = '';
-                    out(result);
-                    sleep(-data);
-                }
-                else if (xvt.app.emulation !== 'dumb') {
-                    switch (data) {
-                        case xvt.cll:
-                            text('\x1B[K');
-                            break;
-                        case xvt.clear:
-                            text('\x1B[H\x1B[J');
-                            xvt.row = 1;
-                            xvt.col = 1;
-                            break;
-                        case xvt.off:
-                            xvt.color = xvt.defaultColor;
-                        case xvt.reset:
-                            if (xvt.color || xvt.bold || xvt.dim || xvt.ul || xvt.flash || xvt.rvs) {
-                                _SGR = '';
-                                text('\x1B[m');
-                            }
-                            xvt.color = 0;
-                            xvt.bold = false;
-                            xvt.dim = false;
-                            xvt.ul = false;
-                            xvt.flash = false;
-                            xvt.rvs = false;
-                            break;
-                        case xvt.bright:
-                            if (xvt.dim) {
-                                SGR(xvt.normal.toString());
-                                xvt.bold = false;
-                                xvt.dim = false;
-                            }
-                            if (!xvt.bold) {
-                                SGR(xvt.bright.toString());
-                                if (!xvt.color) {
-                                    xvt.color = xvt.defaultColor;
-                                    SGR(xvt.color.toString());
-                                }
-                            }
-                            xvt.bold = true;
-                            break;
-                        case xvt.faint:
-                            if (xvt.bold) {
-                                SGR(xvt.normal.toString());
-                                xvt.bold = false;
-                                xvt.dim = false;
-                            }
-                            if (!xvt.dim)
-                                SGR(xvt.faint.toString());
-                            xvt.dim = true;
-                            break;
-                        case xvt.nobright:
-                            if (xvt.bold)
-                                SGR(xvt.nobright.toString());
-                            xvt.bold = false;
-                            break;
-                        case xvt.normal:
-                            if (xvt.bold || xvt.dim) {
-                                SGR(xvt.normal.toString());
-                                xvt.bold = false;
-                                xvt.dim = false;
-                            }
-                            break;
-                        case xvt.uline:
-                            if (!xvt.ul)
-                                SGR(xvt.uline.toString());
-                            xvt.ul = true;
-                            break;
-                        case xvt.nouline:
-                            if (xvt.ul)
-                                SGR(xvt.nouline.toString());
-                            xvt.ul = false;
-                            break;
-                        case xvt.blink:
-                            if (!xvt.flash)
-                                SGR(xvt.blink.toString());
-                            xvt.flash = true;
-                            break;
-                        case xvt.noblink:
-                            if (xvt.flash)
-                                SGR(xvt.noblink.toString());
-                            xvt.flash = false;
-                            break;
-                        case xvt.reverse:
-                            if (!xvt.rvs)
-                                SGR(xvt.reverse.toString());
-                            xvt.rvs = true;
-                            break;
-                        case xvt.noreverse:
-                            if (xvt.rvs)
-                                SGR(xvt.noreverse.toString());
-                            xvt.rvs = false;
-                            break;
-                        default:
-                            xvt.color = data;
-                            if (data >= xvt.black && data <= xvt.white || data >= xvt.lblack && data <= xvt.lwhite)
-                                if (xvt.app.emulation !== 'VT')
-                                    SGR(data.toString());
-                            if (data >= xvt.Black && data <= xvt.White || data >= xvt.lBlack && data <= xvt.lWhite) {
-                                if (xvt.app.emulation !== 'VT')
-                                    SGR(data.toString());
-                                else {
-                                    if (!xvt.rvs)
-                                        SGR(xvt.reverse.toString());
-                                    xvt.rvs = true;
-                                }
-                            }
-                            break;
-                    }
-                }
-                else if (data == xvt.clear) {
-                    text('\f');
-                    xvt.row = 1;
-                    xvt.col = 1;
-                }
+    _read() {
+        return __awaiter(this, void 0, void 0, function* () {
+            let p = this._fields[this.focus];
+            this.cancel = p.cancel || '';
+            this.delay = p.delay || 0;
+            this.enter = p.enter || '';
+            this.input = '';
+            if (p.enq) {
+                this.enq = true;
+                this.warn = false;
+                this.out(p.prompt);
+                this.idleTimeout = 5;
+                yield this.read();
+                p.cb();
+                return;
+            }
+            this.out(this.reset);
+            let row = p.row || 0;
+            let col = p.col || 0;
+            if (row && col)
+                this.plot(row, col);
+            else
+                this.outln();
+            if (p.pause) {
+                this.cancel = '^';
+                this.echo = false;
+                this.eol = false;
+                if (!p.prompt)
+                    p.prompt = '-pause-';
+                if (this.col > 1)
+                    this.outln();
+                this.out(this.reverse, p.prompt, this.reset);
+                this.drain();
             }
             else {
-                text(data);
-                let lines = class_validator_1.isString(data) ? data.split('\n') : [];
-                if (lines.length > 1) {
-                    xvt.row += lines.length - 1;
-                    xvt.col = lines[lines.length - 1].length + 1;
+                this.echo = typeof p.echo == 'boolean' ? p.echo : true;
+                this.eol = typeof p.eol == 'boolean' ? p.eol : true;
+                if (p.prompt)
+                    this.out(p.prompt);
+                this.lines = (p.lines || 0) > 1 ? 2 : 0;
+                if (this.lines) {
+                    this.eol = true;
+                    this.line = 0;
+                    this.outln();
+                    this.out(this.bright, (this.line + 1).toString(), this.normal, '/', this.lines.toString(), this.faint, '] ', this.normal);
+                    this.multi = [];
                 }
+                this.out(this.defaultColor, this.bright);
             }
+            this.entryMin = p.min || 0;
+            this.entryMax = p.max || (this.lines ? 72 : this.eol ? 0 : 1);
+            this.eraser = p.eraser || ' ';
+            this.idleTimeout = p.timeout || this.defaultTimeout;
+            this.warn = p.warn || this.defaultWarn;
+            if (row && col && this.echo && this.entryMax)
+                this.out(this.eraser.repeat(this.entryMax), '\b'.repeat(this.entryMax));
+            yield this.read();
+            if (p.match && !p.match.test(this.entry)) {
+                this.drain();
+                this.refocus();
+                return;
+            }
+            if (p.pause)
+                this.rubout(7, true);
+            if (this.lines) {
+                do {
+                    this.multi[this.line] = this.entry;
+                    if (this.terminator == '[UP]') {
+                        if (this.line) {
+                            this.out('\x1B[A');
+                            this.line--;
+                        }
+                        this.out('\r');
+                    }
+                    else {
+                        this.outln();
+                        this.line++;
+                        if (!this.entry.length || this.line == this.lines) {
+                            for (let i = this.line; i < this.lines; i++) {
+                                this.outln(this.cll);
+                                delete this.multi[i];
+                            }
+                            break;
+                        }
+                    }
+                    this.out(this.bright, (this.line + 1).toString(), this.normal, '/', this.lines.toString(), this.faint, '] ', this.normal);
+                    this.out(this.defaultColor, this.bright);
+                    this.input = this.multi[this.line] || '';
+                    this.out(this.input);
+                    yield this.read();
+                } while (this.line < this.lines);
+                this.entry = this.multi.join('\n');
+                while (this.entry.substr(-1) == '\n')
+                    this.entry = this.entry.substr(0, this.entry.length - 1);
+            }
+            p.cb();
         });
-        text();
-        result = _text;
-        _text = '';
-        return result;
     }
-    xvt.attr = attr;
-    function beep() {
-        out('\x07');
-    }
-    xvt.beep = beep;
-    function drain() {
-        abort = true;
-        xvt.typeahead = '';
-    }
-    xvt.drain = drain;
-    function out(...params) {
-        try {
-            if (xvt.carrier)
-                process.stdout.write(attr(...params), xvt.app.encoding);
-        }
-        catch (err) {
-            xvt.carrier = false;
-        }
-    }
-    xvt.out = out;
-    function outln(...params) {
-        out(attr(...params), xvt.reset, '\n');
-    }
-    xvt.outln = outln;
-    function restore() {
-        out(xvt.app.emulation == 'VT' ? '\x1B8' : '\x1B[u');
-        xvt.col = _col;
-        xvt.color = _color;
-        xvt.bold = _bold;
-        xvt.dim = _dim;
-        xvt.ul = _ul;
-        xvt.flash = _flash;
-        xvt.row = _row;
-        xvt.rvs = _rvs;
-    }
-    xvt.restore = restore;
-    function save() {
-        out(xvt.app.emulation == 'VT' ? '\x1B7' : '\x1B[s');
-        _col = xvt.col;
-        _color = xvt.color;
-        _bold = xvt.bold;
-        _dim = xvt.dim;
-        _ul = xvt.ul;
-        _flash = xvt.flash;
-        _row = xvt.row;
-        _rvs = xvt.rvs;
-    }
-    xvt.save = save;
-    function SGR(attr) {
-        if (xvt.app.emulation !== 'dumb') {
-            if (_SGR == '')
-                _SGR = '\x1B[';
-            else
-                attr = ';' + attr;
-            _SGR += attr;
-        }
-    }
-    function text(s = '') {
-        if (_SGR.length) {
-            _text += _SGR + 'm';
-            _SGR = '';
-        }
-        _text += s;
-        xvt.col += s.length;
-    }
-    function plot(row, col) {
-        out('\x1B[', row.toString(), ';', col.toString(), 'H');
-        xvt.row = row;
-        xvt.col = col;
-    }
-    xvt.plot = plot;
-    function rubout(n = 1, erase) {
-        if (!class_validator_1.isDefined(erase))
-            erase = echo;
-        if (erase) {
-            out(`\b${eraser}\b`.repeat(n));
-            xvt.col -= n;
-        }
-    }
-    xvt.rubout = rubout;
-    let abort = false;
-    let cancel = '';
-    let delay = 0;
-    let echo = true;
-    let enq = false;
-    let enter = '';
-    let entryMin = 0;
-    let entryMax = 0;
-    let eol = true;
-    let eraser = ' ';
-    let input = '';
-    let line = 0;
-    let lines = 0;
-    let multi;
-    let warn = xvt.defaultWarn;
-    function read() {
+    read() {
         return __awaiter(this, void 0, void 0, function* () {
             let elapsed = new Date().getTime() / 1000 >> 0;
             let retry = true;
-            if (xvt.carrier) {
-                if (xvt.sessionAllowed && (elapsed - (xvt.sessionStart.getTime() / 1000)) > xvt.sessionAllowed) {
-                    outln(xvt.off, ' ** ', xvt.bright, 'your session expired', xvt.off, ' ** ');
-                    xvt.reason = xvt.reason || 'got exhausted';
-                    hangup();
+            if (this.carrier) {
+                if (this.sessionAllowed && (elapsed - (this.sessionStart.getTime() / 1000)) > this.sessionAllowed) {
+                    this.outln(this.off, ' ** ', this.bright, 'your session expired', this.off, ' ** ');
+                    this.reason = this.reason || 'got exhausted';
+                    this.hangup();
                 }
             }
             else
-                warn = false;
-            const idle = xvt.idleTimeout ? xvt.idleTimeout * (warn ? 500 : 1000) : 2147483647;
-            xvt.entry = '';
-            xvt.terminator = null;
-            if (delay)
-                sleep(delay);
-            while (retry && class_validator_1.isEmpty(xvt.terminator)) {
-                yield forInput(idle).catch(() => {
-                    beep();
-                    retry = xvt.carrier && warn;
+                this.warn = false;
+            const idle = this.idleTimeout ? this.idleTimeout * (this.warn ? 500 : 1000) : 2147483647;
+            this.entry = '';
+            this.terminator = null;
+            if (this.delay)
+                this.sleep(this.delay);
+            while (retry && !this.terminator) {
+                yield forInput(this, idle).catch(() => {
+                    this.beep();
+                    retry = this.carrier && this.warn;
                     if (retry)
-                        warn = false;
+                        this.warn = false;
                     else {
-                        if (cancel.length) {
-                            rubout(input.length);
-                            xvt.entry = cancel;
-                            if (echo)
-                                out(xvt.entry);
-                            xvt.terminator = '[ESC]';
+                        if (this.cancel.length) {
+                            this.rubout(this.input.length);
+                            this.entry = this.cancel;
+                            if (this.echo)
+                                this.out(this.entry);
+                            this.terminator = '[ESC]';
                         }
                         else {
-                            if (xvt.carrier) {
-                                outln(xvt.off, ' ** ', xvt.faint, 'timeout', xvt.off, ' ** ');
-                                xvt.reason = xvt.reason || 'fallen asleep';
+                            if (this.carrier) {
+                                this.outln(this.off, ' ** ', this.faint, 'timeout', this.off, ' ** ');
+                                this.reason = this.reason || 'fallen asleep';
                             }
-                            hangup();
+                            this.hangup();
                         }
                     }
                 });
             }
-            out(xvt.reset);
-            function forInput(ms) {
+            this.out(this.reset);
+            function forInput(io, ms) {
                 return new Promise((resolve, reject) => {
-                    waiting = () => { resolve(xvt.terminator); };
+                    io._waiting = () => { resolve(io.terminator); };
                     if (process.stdin.isPaused)
                         process.stdin.resume();
-                    setTimeout(reject, xvt.carrier ? ms : 6);
-                }).finally(() => { waiting = null; });
+                    setTimeout(reject, io.carrier ? ms : io._pad);
+                }).finally(() => { io._waiting = null; });
             }
         });
     }
-    xvt.read = read;
-    process.stdin.on('data', (key) => {
-        do {
-            let k = xvt.typeahead + (key ? key.toString() : '');
-            xvt.typeahead = '';
-            key = null;
-            let k0 = k.substr(0, 1);
-            xvt.terminator = null;
-            if (abort) {
-                abort = false;
-                break;
-            }
-            if (enq) {
-                let i = k.indexOf('\x1B');
-                if (i >= 0)
-                    xvt.entry = k.substr(i);
-                else
-                    xvt.entry = k;
-                xvt.terminator = k0;
-                process.stdin.pause();
-                break;
-            }
-            if (k.length > 1 && k0 >= ' ') {
-                const t = (entryMax || k.length) - input.length;
-                if (t > 1) {
-                    let load = k.substr(0, t - 1);
-                    const m = /[\x00-\x1F]/.exec(load);
-                    if (m && m.index)
-                        load = load.substr(0, m.index);
-                    if (echo)
-                        out(load);
-                    input += load;
-                    k = k.substr(load.length);
-                    k0 = k.substr(0, 1);
-                }
-            }
-            xvt.typeahead = k.substr(1);
-            if (!k0)
-                continue;
-            if (k0 == '\x04' || k0 == '\x1A') {
-                outln(xvt.off, ' ** disconnect ** ');
-                xvt.reason = 'manual disconnect';
-                hangup();
-            }
-            if (k0 == '\b' || k0 == '\x7F') {
-                if (eol && input.length > 0) {
-                    input = input.substr(0, input.length - 1);
-                    rubout();
-                }
-                else if (lines && line > 0 && !input.length) {
-                    xvt.entry = input;
-                    xvt.terminator = '[UP]';
-                    process.stdin.pause();
-                    break;
-                }
-                else
-                    beep();
-                continue;
-            }
-            if (k0 == '\x15' || k0 == '\x18') {
-                rubout(input.length);
-                input = '';
-                continue;
-            }
-            if (k0 < ' ') {
-                let cook = 1;
-                xvt.terminator = `^${String.fromCharCode(k0.charCodeAt(0) + 64)}`;
-                if (k0 == '\x1B') {
-                    cook = 3;
-                    switch (k.substr(1)) {
-                        case '[A':
-                            xvt.terminator = '[UP]';
-                            break;
-                        case '[B':
-                            xvt.terminator = '[DOWN]';
-                            break;
-                        case '[C':
-                            xvt.terminator = '[RIGHT]';
-                            break;
-                        case '[D':
-                            xvt.terminator = '[LEFT]';
-                            break;
-                        case '[11~':
-                            cook++;
-                        case '[1P':
-                            cook++;
-                        case 'OP':
-                            xvt.terminator = '[F1]';
-                            break;
-                        case '[12~':
-                            cook++;
-                        case '[1Q':
-                            cook++;
-                        case 'OQ':
-                            xvt.terminator = '[F2]';
-                            break;
-                        case '[13~':
-                            cook++;
-                        case '[1R':
-                            cook++;
-                        case 'OR':
-                            xvt.terminator = '[F3]';
-                            break;
-                        case '[14~':
-                            cook++;
-                        case '[1S':
-                            cook++;
-                        case 'OS':
-                            xvt.terminator = '[F4]';
-                            break;
-                        case '[15~':
-                            cook = 5;
-                            xvt.terminator = '[F5]';
-                            break;
-                        case '[17~':
-                            cook = 5;
-                            xvt.terminator = '[F6]';
-                            break;
-                        case '[18~':
-                            cook = 5;
-                            xvt.terminator = '[F7]';
-                            break;
-                        case '[19~':
-                            cook = 5;
-                            xvt.terminator = '[F8]';
-                            break;
-                        case '[20~':
-                            cook = 5;
-                            xvt.terminator = '[F9]';
-                            break;
-                        case '[21~':
-                            cook = 5;
-                            xvt.terminator = '[F10]';
-                            break;
-                        case '[23~':
-                            cook = 5;
-                            xvt.terminator = '[F11]';
-                            break;
-                        case '[24~':
-                            cook = 5;
-                            xvt.terminator = '[F12]';
-                            break;
-                        case '[1~':
-                        case '[7~':
-                            cook++;
-                        case '[H':
-                            xvt.terminator = '[HOME]';
-                            break;
-                        case '[2~':
-                            cook++;
-                            xvt.terminator = '[INSERT]';
-                            break;
-                        case '[3~':
-                            cook++;
-                            xvt.terminator = '[DELETE]';
-                            break;
-                        case '[4~':
-                        case '[8~':
-                            cook++;
-                        case '[F':
-                            xvt.terminator = '[END]';
-                            break;
-                        case '[5~':
-                            cook++;
-                            xvt.terminator = '[PGUP]';
-                            break;
-                        case '[6~':
-                            cook++;
-                            xvt.terminator = '[PGDN]';
-                            break;
-                        default:
-                            cook = 1;
-                            xvt.terminator = '[ESC]';
-                            break;
-                    }
-                }
-                if (k0 == '\r')
-                    xvt.terminator = k0;
-                xvt.typeahead = k.substr(cook);
-                if (!input.length && enter.length > 0) {
-                    input = enter;
-                    if (echo)
-                        out(input);
-                }
-                else if (input.length < entryMin) {
-                    beep();
-                    rubout(input.length);
-                    input = '';
-                    continue;
-                }
-                xvt.entry = input;
-                input = '';
-                process.stdin.pause();
-                break;
-            }
-            if (eol || lines) {
-                if (entryMax > 0 && input.length >= entryMax) {
-                    beep();
-                    if (lines && (line + 1) < lines) {
-                        xvt.entry = input;
-                        if (k0 !== ' ') {
-                            let i = input.lastIndexOf(' ');
-                            if (i > 0) {
-                                rubout(input.substring(i).length);
-                                xvt.entry = input.substring(0, i);
-                                xvt.typeahead = input.substring(i + 1) + k0 + xvt.typeahead;
-                            }
+    refocus(prompt) {
+        if (prompt)
+            this._fields[this.focus].prompt = prompt;
+        if (this._focus)
+            this.focus = this.focus;
+    }
+    stdio(log) {
+        process.on('SIGHUP', () => {
+            this.outln(this.off, ' ** ', this.faint, 'hangup', this.off, ' ** ');
+            this.reason = this.reason || 'hangup';
+            this.carrier = false;
+            this.hangup();
+        });
+        process.on('SIGINT', () => {
+            this.outln(this.off, ' ** ', this.bright, 'interrupt', this.off, ' ** ');
+            this.reason = this.reason || 'interrupted';
+            this.carrier = false;
+            this.hangup();
+        });
+        if (process.stdin.isTTY) {
+            process.stdin.setRawMode(true);
+            process.stdin.pause();
+            process.stdin.on('data', (key) => {
+                do {
+                    let k = this.typeahead + (key ? key.toString() : '');
+                    this.typeahead = '';
+                    key = null;
+                    let k0 = k.substr(0, 1);
+                    this.terminator = null;
+                    if (this.abort || this.enq) {
+                        if (this.enq) {
+                            let i = k.indexOf('\x1B');
+                            if (i >= 0)
+                                this.entry = k.substr(i);
+                            else
+                                this.entry = k;
+                            this.terminator = k0;
+                            this.enq = false;
                         }
-                        xvt.terminator = '\r';
+                        this.abort = false;
                         process.stdin.pause();
                         break;
                     }
-                    continue;
-                }
-            }
-            if (echo)
-                out(k0);
-            input += k0;
-            if (!eol && input.length >= entryMax) {
-                xvt.entry = input;
-                xvt.terminator = k0;
-                process.stdin.pause();
-                break;
-            }
-        } while (xvt.typeahead);
-    });
-    process.on('SIGHUP', function () {
-        outln(xvt.off, ' ** ', xvt.faint, 'hangup', xvt.off, ' ** ');
-        xvt.reason = xvt.reason || 'hangup';
-        xvt.carrier = false;
-        hangup();
-    });
-    process.on('SIGINT', function () {
-        outln(xvt.off, ' ** ', xvt.bright, 'interrupt', xvt.off, ' ** ');
-        xvt.reason = xvt.reason || 'interrupted';
-        xvt.carrier = false;
-        hangup();
-    });
-    process.stdin.on('pause', () => {
-        if (waiting)
-            waiting();
-    });
-    process.stdin.on('resume', () => {
-        if (xvt.typeahead)
-            process.stdin.emit('data', '');
-        else
-            abort = false;
-    });
-    xvt.app = new session();
-})(xvt || (xvt = {}));
-module.exports = xvt;
+                    if (k.length > 1 && k0 >= ' ') {
+                        const t = (this.entryMax || k.length) - this.input.length;
+                        if (t > 1) {
+                            let load = k.substr(0, t - 1);
+                            const m = /[\x00-\x1F]/.exec(load);
+                            if (m && m.index)
+                                load = load.substr(0, m.index);
+                            if (this.echo)
+                                this.out(load);
+                            this.input += load;
+                            k = k.substr(load.length);
+                            k0 = k.substr(0, 1);
+                        }
+                    }
+                    this.typeahead = k.substr(1);
+                    if (!k0)
+                        continue;
+                    if (k0 == '\x04') {
+                        this.outln(this.off, ' ** disconnect ** ');
+                        this.reason = 'manual disconnect';
+                        this.hangup();
+                    }
+                    if (k == '\x1A') {
+                        process.kill(process.pid, 'SIGHUP');
+                        continue;
+                    }
+                    if (k0 == '\b' || k0 == '\x7F') {
+                        if (this.eol && this.input.length > 0) {
+                            this.input = this.input.substr(0, this.input.length - 1);
+                            this.rubout();
+                        }
+                        else if (this.lines && this.line > 0 && !this.input.length) {
+                            this.entry = this.input;
+                            this.terminator = '[UP]';
+                            process.stdin.pause();
+                            break;
+                        }
+                        else
+                            this.beep();
+                        continue;
+                    }
+                    if (k0 == '\x15' || k0 == '\x18') {
+                        this.rubout(this.input.length);
+                        this.input = '';
+                        continue;
+                    }
+                    if (k0 < ' ') {
+                        let cook = 1;
+                        this.terminator = `^${String.fromCharCode(k0.charCodeAt(0) + 64)}`;
+                        if (k0 == '\x1B') {
+                            cook = 3;
+                            switch (k.substr(1)) {
+                                case '[A':
+                                    this.terminator = '[UP]';
+                                    break;
+                                case '[B':
+                                    this.terminator = '[DOWN]';
+                                    break;
+                                case '[C':
+                                    this.terminator = '[RIGHT]';
+                                    break;
+                                case '[D':
+                                    this.terminator = '[LEFT]';
+                                    break;
+                                case '[11~':
+                                    cook++;
+                                case '[1P':
+                                    cook++;
+                                case 'OP':
+                                    this.terminator = '[F1]';
+                                    break;
+                                case '[12~':
+                                    cook++;
+                                case '[1Q':
+                                    cook++;
+                                case 'OQ':
+                                    this.terminator = '[F2]';
+                                    break;
+                                case '[13~':
+                                    cook++;
+                                case '[1R':
+                                    cook++;
+                                case 'OR':
+                                    this.terminator = '[F3]';
+                                    break;
+                                case '[14~':
+                                    cook++;
+                                case '[1S':
+                                    cook++;
+                                case 'OS':
+                                    this.terminator = '[F4]';
+                                    break;
+                                case '[15~':
+                                    cook = 5;
+                                    this.terminator = '[F5]';
+                                    break;
+                                case '[17~':
+                                    cook = 5;
+                                    this.terminator = '[F6]';
+                                    break;
+                                case '[18~':
+                                    cook = 5;
+                                    this.terminator = '[F7]';
+                                    break;
+                                case '[19~':
+                                    cook = 5;
+                                    this.terminator = '[F8]';
+                                    break;
+                                case '[20~':
+                                    cook = 5;
+                                    this.terminator = '[F9]';
+                                    break;
+                                case '[21~':
+                                    cook = 5;
+                                    this.terminator = '[F10]';
+                                    break;
+                                case '[23~':
+                                    cook = 5;
+                                    this.terminator = '[F11]';
+                                    break;
+                                case '[24~':
+                                    cook = 5;
+                                    this.terminator = '[F12]';
+                                    break;
+                                case '[1~':
+                                case '[7~':
+                                    cook++;
+                                case '[H':
+                                    this.terminator = '[HOME]';
+                                    break;
+                                case '[2~':
+                                    cook++;
+                                    this.terminator = '[INSERT]';
+                                    break;
+                                case '[3~':
+                                    cook++;
+                                    this.terminator = '[DELETE]';
+                                    break;
+                                case '[4~':
+                                case '[8~':
+                                    cook++;
+                                case '[F':
+                                    this.terminator = '[END]';
+                                    break;
+                                case '[5~':
+                                    cook++;
+                                    this.terminator = '[PGUP]';
+                                    break;
+                                case '[6~':
+                                    cook++;
+                                    this.terminator = '[PGDN]';
+                                    break;
+                                default:
+                                    cook = 1;
+                                    this.terminator = '[ESC]';
+                                    break;
+                            }
+                        }
+                        if (k0 == '\r')
+                            this.terminator = k0;
+                        this.typeahead = k.substr(cook);
+                        if (!this.input.length && this.enter.length > 0) {
+                            this.input = this.enter;
+                            if (this.echo)
+                                this.out(this.input);
+                        }
+                        else if (this.input.length < this.entryMin) {
+                            this.beep();
+                            this.rubout(this.input.length);
+                            this.input = '';
+                            continue;
+                        }
+                        this.entry = this.input;
+                        this.input = '';
+                        process.stdin.pause();
+                        break;
+                    }
+                    if (this.eol || this.lines) {
+                        if (this.entryMax > 0 && this.input.length >= this.entryMax) {
+                            this.beep();
+                            if (this.lines && (this.line + 1) < this.lines) {
+                                this.entry = this.input;
+                                if (k0 !== ' ') {
+                                    let i = this.input.lastIndexOf(' ');
+                                    if (i > 0) {
+                                        this.rubout(this.input.substring(i).length);
+                                        this.entry = this.input.substring(0, i);
+                                        this.typeahead = this.input.substring(i + 1) + k0 + this.typeahead;
+                                    }
+                                }
+                                this.terminator = '\r';
+                                process.stdin.pause();
+                                break;
+                            }
+                            continue;
+                        }
+                    }
+                    if (this.echo)
+                        this.out(k0);
+                    this.input += k0;
+                    if (!this.eol && this.input.length >= this.entryMax) {
+                        this.entry = this.input;
+                        this.terminator = k0;
+                        process.stdin.pause();
+                        break;
+                    }
+                } while (this.typeahead);
+            });
+            process.stdin.on('pause', () => {
+                if (this._waiting)
+                    this._waiting();
+            });
+            process.stdin.on('resume', () => {
+                if (this.typeahead)
+                    process.stdin.emit('data', '');
+                else
+                    this.abort = false;
+            });
+            if (log)
+                console.info(`xvt I/O initialized`);
+        }
+        else {
+            if (log)
+                console.warn(`xvt output only initialized`);
+        }
+    }
+}
+exports.xvt = xvt;
 //# sourceMappingURL=xvt.js.map
