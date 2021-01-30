@@ -1,5 +1,5 @@
 {
-  "name": "xvt",
+  "name": "@theflyingape/xvt",
   "version": "1.4.1",
   "description": "an asynchronous terminal session handler",
   "os": [
