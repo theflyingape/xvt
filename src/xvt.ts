@@ -206,19 +206,19 @@ export class xvt {
         }
     }
 
-    private text(s = ''): string {
+    private text(s?: string): string {
         if (this._SGR.length) {
             this._text += this._SGR + 'm'
             this._SGR = ''
         }
-        if (s) {
-            this._text += s
-            this.col += s.length
-        }
-        else {
+        if (typeof s == 'undefined') {
             const result = this._text
             this._text = ''
             return result
+        }
+        else {
+            this._text += s
+            this.col += s.length
         }
         return this._text
     }
@@ -355,7 +355,7 @@ export class xvt {
 
     drain() {
         this.abort = true
-        if (this.typeahead && process.stdin.isPaused) process.stdin.resume()    
+        if (this.typeahead && process.stdin.isPaused) process.stdin.resume()
     }
 
     hangup() {
@@ -393,11 +393,13 @@ export class xvt {
     pause(nextField: string, timeout = this.defaultTimeout, cb?: Function) {
         const save = this.form
         this.form = {
-            0: { cb: () => {
-                if (cb) cb()
-                this.form = save
-                this.focus = nextField
-            }, pause: true, timeout: timeout }
+            0: {
+                cb: () => {
+                    if (cb) cb()
+                    this.form = save
+                    this.focus = nextField
+                }, pause: true, timeout: timeout
+            }
         }
     }
 
