@@ -1,5 +1,4 @@
 /// <reference types="node" />
-declare type emulator = 'dumb' | 'VT' | 'PC' | 'XT';
 interface Field {
     cb: Function;
     row?: number;
@@ -23,6 +22,7 @@ interface Field {
 interface iField {
     [key: string]: Field;
 }
+declare type emulator = 'dumb' | 'VT' | 'PC' | 'XT';
 export declare class xvt {
     readonly reset = 0;
     readonly bright = 1;
@@ -151,6 +151,6 @@ export declare class xvt {
     private _waiting;
     read(): Promise<void>;
     refocus(prompt?: string): void;
-    stdio(log: boolean): void;
+    stdio(log?: boolean): void;
 }
 export default xvt;

@@ -6,8 +6,6 @@
  * - user input interface: formatted and roll-and-scroll                     *
 \*****************************************************************************/
 
-type emulator = 'dumb' | 'VT' | 'PC' | 'XT'
-
 interface Field {
     cb: Function        //  post-validated focus input (onblur)
     row?: number        //  1 - $LINES
@@ -32,6 +30,8 @@ interface Field {
 interface iField {
     [key: string]: Field
 }
+
+type emulator = 'dumb' | 'VT' | 'PC' | 'XT'
 
 export class xvt {
 
@@ -99,7 +99,7 @@ export class xvt {
     private _emulation: emulator
     private _encoding: BufferEncoding
 
-    get emulation() {
+    get emulation(): emulator {
         return this._emulation
     }
 
@@ -461,7 +461,7 @@ export class xvt {
     //  form I/O field input
     //  ********************
     private _fields: iField
-    private _focus: string | number
+    private _focus: string | number = 0
 
     get form() {
         return this._fields || null
@@ -677,11 +677,11 @@ export class xvt {
     //  redo last field
     refocus(prompt?: string) {
         if (prompt) this._fields[this.focus].prompt = prompt
-        if (this._focus) this.focus = this.focus
+        this.focus = this._focus
     }
 
     //  initialize I/O events
-    stdio(log: boolean) {
+    stdio(log = false) {
 
         process.on('SIGHUP', () => {
             this.outln(this.off, ' ** ', this.faint, 'hangup', this.off, ' ** ')

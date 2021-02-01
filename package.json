@@ -1,6 +1,6 @@
 {
   "name": "@theflyingape/xvt",
-  "version": "1.4.1",
+  "version": "1.4.2",
   "description": "an asynchronous terminal session handler",
   "os": [
     "cros",
