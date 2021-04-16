@@ -2,6 +2,8 @@
   "name": "@theflyingape/xvt",
   "version": "1.4.3",
   "description": "an asynchronous terminal session handler",
+  "author": "Robert Hurst",
+  "license": "MIT",
   "os": [
     "cros",
     "linux"
@@ -24,6 +26,7 @@
     "access": "public",
     "registry": "https://npm.pkg.github.com"
   },
+  "publisher": "Robert Hurst",
   "repository": {
     "type": "git",
     "url": "git+https://github.com/theflyingape/xvt.git"
@@ -37,7 +40,5 @@
     "emulation",
     "forms",
     "terminal"
-  ],
-  "author": "Robert Hurst",
-  "license": "MIT"
+  ]
 }
