@@ -1,44 +1,43 @@
 {
   "name": "@theflyingape/xvt",
-  "version": "1.4.3",
+  "version": "1.4.4",
   "description": "an asynchronous terminal session handler",
-  "author": "Robert Hurst",
-  "license": "MIT",
-  "os": [
-    "cros",
-    "linux"
-  ],
-  "main": "./lib/xvt.js",
-  "types": "./lib/xvt.d.ts",
-  "devDependencies": {
-    "@types/node": "^14.14.40",
-    "typescript": "^4.2.4"
-  },
-  "files": [
-    "lib"
-  ],
-  "scripts": {
-    "build": "./tsc",
-    "demo": "./tsc -p ./demo --outDir ./demo; node ./demo/index",
-    "test": "exit 0"
-  },
-  "publishConfig": {
-    "access": "public",
-    "registry": "https://npm.pkg.github.com"
-  },
-  "publisher": "Robert Hurst",
-  "repository": {
-    "type": "git",
-    "url": "git+https://github.com/theflyingape/xvt.git"
-  },
-  "bugs": {
-    "url": "https://github.com/theflyingape/xvt/issues"
-  },
+  "author": "Robert Hurst <theflyingape@gmail.com>",
   "homepage": "https://robert.hurst-ri.us",
   "keywords": [
     "ansi",
     "emulation",
     "forms",
     "terminal"
-  ]
+  ],
+  "license": "MIT",
+  "os": [
+    "cros",
+    "linux"
+  ],
+  "files": [
+    "lib"
+  ],
+  "main": "./lib/xvt.js",
+  "types": "./lib/xvt.d.ts",
+  "devDependencies": {
+    "@types/node": "^14.14.41",
+    "typescript": "^4.2.4"
+  },
+  "bugs": {
+    "url": "https://github.com/theflyingape/xvt/issues"
+  },
+  "publishConfig": {
+    "access": "public",
+    "registry": "https://npm.pkg.github.com"
+  },
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/theflyingape/xvt.git"
+  },
+  "scripts": {
+    "build": "./tsc",
+    "demo": "./tsc -p ./demo --outDir ./demo; node ./demo/index",
+    "test": "exit 0"
+  }
 }

@@ -85,6 +85,7 @@ export declare class xvt {
     ondrop: Function;
     reason: string;
     defaultColor: number;
+    defaultPrompt: number;
     defaultTimeout: number;
     defaultWarn: boolean;
     entry: string;

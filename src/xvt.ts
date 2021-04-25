@@ -161,6 +161,7 @@ export class xvt {
     reason = ''
 
     defaultColor: number = this.white
+    defaultPrompt: number = this.white
     defaultTimeout: number = 0
     defaultWarn: boolean = true
     entry: string = ''
@@ -525,11 +526,12 @@ export class xvt {
             return
         }
 
-        this.out(this.reset)
         let row = p.row || 0
         let col = p.col || 0
-        if (row && col)
+        if (row && col) {
+            this.out(this.reset)
             this.plot(row, col)  //  formatted screen
+        }
         else
             this.outln()         //  roll-and-scroll
 
@@ -546,7 +548,7 @@ export class xvt {
             this.echo = typeof p.echo == 'boolean' ? p.echo : true
             this.eol = typeof p.eol == 'boolean' ? p.eol : true
 
-            if (p.prompt) this.out(p.prompt)
+            if (p.prompt) this.out(this.defaultPrompt, p.prompt)
 
             this.lines = (p.lines || 0) > 1 ? 2 : 0
             if (this.lines) {
