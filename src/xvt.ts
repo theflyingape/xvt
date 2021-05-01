@@ -368,8 +368,7 @@ export class xvt {
             this.out(this.off, '+', -125, '+', -125, '+', -250)
             this.outln('\nOK')
             this.out(-400, 'ATH\r', -300)
-            this.beep()
-            this.outln('\n', -200, 'NO CARRIER')
+            this.outln('\x07\n', -200, 'NO CARRIER')
             this.sleep(100)
         }
 
@@ -450,7 +449,7 @@ export class xvt {
                 }
                 catch (err) {
                     //  tweak for exec() overhead
-                    if (err.code == 'ETIMEDOUT')
+                    if (err.code == 'ETIMEDOUT' && this._pad < 20)
                         this._pad++
                     else
                         console.error(err)
@@ -619,7 +618,7 @@ export class xvt {
     }
 
     //  I/O input data
-    private _pad: number = 4
+    private _pad: number = 4    //  can auto-adjust to 5 - 20ms
     private _waiting: Function = null
 
     async read() {
