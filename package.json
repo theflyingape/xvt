@@ -1,6 +1,6 @@
 {
   "name": "@theflyingape/xvt",
-  "version": "1.4.6",
+  "version": "1.4.7",
   "description": "an asynchronous terminal session handler",
   "author": "Robert Hurst <theflyingape@gmail.com>",
   "homepage": "https://robert.hurst-ri.us",
@@ -18,11 +18,11 @@
   "files": [
     "lib"
   ],
-  "main": "./lib/xvt.js",
-  "types": "./lib/xvt.d.ts",
+  "main": "lib/xvt.js",
+  "types": "lib/xvt.d.ts",
   "devDependencies": {
-    "@types/node": "^15.3.0",
-    "typescript": "^4.2.4"
+    "@types/node": "^15.6.1",
+    "typescript": "^4.3.2"
   },
   "bugs": {
     "url": "https://github.com/theflyingape/xvt/issues"
@@ -36,8 +36,8 @@
     "url": "git+https://github.com/theflyingape/xvt.git"
   },
   "scripts": {
-    "build": "./tsc",
-    "demo": "./tsc -p ./demo --outDir ./demo; node ./demo/index",
+    "build": "tsc",
+    "demo": "tsc -p demo --outDir demo; node demo/index",
     "test": "exit 0"
   }
 }

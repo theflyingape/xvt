@@ -5,9 +5,9 @@ process.on('uncaughtException', (err, origin) => {
     console.error(`${origin} ${err}`);
 });
 const io_1 = require("./io");
-io_1.io.defaultTimeout = 30;
+io_1.io.defaultTimeout = 20;
 io_1.io.modem = true;
-io_1.io.sessionAllowed = 300;
+io_1.io.sessionAllowed = 120;
 io_1.io.ondrop = () => {
     console.error(`\ndropped: ${io_1.io.reason || 'unknown'}\n`);
 };

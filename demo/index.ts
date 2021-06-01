@@ -5,9 +5,9 @@ process.on('uncaughtException', (err, origin) => {
 })
 
 import { io } from './io'
-io.defaultTimeout = 30
+io.defaultTimeout = 20
 io.modem = true
-io.sessionAllowed = 300
+io.sessionAllowed = 120
 io.ondrop = () => {
 	console.error(`\ndropped: ${io.reason || 'unknown'}\n`)
 }

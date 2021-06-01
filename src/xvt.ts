@@ -441,19 +441,17 @@ export class xvt {
     }
 
     sleep(ms: number) {
-        if (ms > 0) {
-            const t = ms > this._pad ? ms - this._pad : this._pad
-            if (this.carrier)
-                try {
-                    require('child_process').execSync(`sleep ${t / 1000}`, { stdio: 'ignore', timeout: ms })
-                }
-                catch (err) {
-                    //  tweak for exec() overhead
-                    if (err.code == 'ETIMEDOUT' && this._pad < 20)
-                        this._pad++
-                    else
-                        console.error(err)
-                }
+        if (this.carrier && ms > 0) {
+            const t = ms > this._pad ? ms - this._pad : 1
+            try {
+                require('child_process').execSync(`sleep ${t / 1000}`, { stdio: 'ignore', timeout: ms })
+            }
+            catch (err) {
+                //  tweak for exec() overhead
+                if (err.code == 'ETIMEDOUT' && this._pad < 25)
+                    this._pad++
+                //else console.error(err)
+            }
         }
     }
 
@@ -477,16 +475,18 @@ export class xvt {
     }
 
     set focus(name: string | number) {
-        if (this._fields[name]) {
-            this._focus = name
-            this._read()
-        }
-        else {
-            this.beep()
-            this.outln(this.off, this.red, '?', this.bright, `xvt form ${name} error: `
-                , this.reset, `field '${name}' undefined`)
-            this.refocus()
-        }
+        try {
+            if (this._fields[name]) {
+                this._focus = name
+                this._read()
+            }
+            else {
+                this.beep()
+                this.outln(this.off, this.red, '?', this.bright, `xvt form ${name} error: `
+                    , this.reset, `field '${name}' undefined`)
+                this.refocus()
+            }
+        } catch { }
     }
 
     //  runtime field prompt registers
@@ -622,22 +622,24 @@ export class xvt {
     private _waiting: Function = null
 
     async read() {
+        this.entry = ''
+        this.terminator = null
+
+        const idle = this.idleTimeout ? this.idleTimeout * (this.warn ? 500 : 1000) : 2147483647
         let elapsed = new Date().getTime() / 1000 >> 0
         let retry = true
 
         if (this.carrier) {
             if (this.sessionAllowed && (elapsed - (this.sessionStart.getTime() / 1000)) > this.sessionAllowed) {
-                this.outln(this.off, ' ** ', this.bright, 'your session expired', this.off, ' ** ')
+                this.outln(this.off, ' ** ', this.bright, 'your session expired', this.off, ' ** ', -600)
                 this.reason = this.reason || 'got exhausted'
                 this.hangup()
             }
         }
-        else
+        else {
             this.warn = false
-
-        const idle = this.idleTimeout ? this.idleTimeout * (this.warn ? 500 : 1000) : 2147483647
-        this.entry = ''
-        this.terminator = null
+            retry = false
+        }
 
         if (this.delay) this.sleep(this.delay)
 
