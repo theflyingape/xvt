@@ -44,17 +44,17 @@ io.form = {
 
 			io.pause('cook', 5, () => {
 				io.outln('Press any key including function and control keys.')
-				io.outln('Ctrl-D for soft or Ctrl-Z for hard disconnect, anytime')
-				io.outln('RETURN or ESCape when done.')
-			} )
-		}, cancel: '\x05', prompt: '\x1B[6n', enq: true
+				io.outln('Ctrl-D (soft) or Ctrl-Z (hard) disconnect, anytime')
+				io.outln('RETURN ("DEFAULT") or ESCape ("CANCEL") when done.')
+			})
+		}, cancel: '\x05', prompt: '\x1B[5n', enq: true
 	},
 	'cook': {
 		cb: () => {
 			io.out(`You pressed '${io.terminator == '\r' ? '[CR]' : io.terminator}' = `
 				, io.entry.split('').map((c) => { return c.charCodeAt(0) }))
 			io.focus = io.terminator == '\r' || io.terminator == '[ESC]' ? 'username' : 'cook'
-		}, cancel: ' ', echo: false, eol: false, timeout: 20
+		}, cancel: 'CANCEL', enter: 'DEFAULT', echo: false, eol: false, timeout: 20
 	},
 	'username': { cb: login, prompt: 'Username: ', min: 3, max: 10 },
 	'password': { cb: password, echo: false, min: 4, timeout: 15 }

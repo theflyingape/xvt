@@ -895,7 +895,12 @@ export class xvt {
                                     break
                                 default:
                                     cook = 1
+                                    this.rubout(this.input.length)
                                     this.terminator = '[ESC]'
+                                    this.input = this.cancel
+                                    if (this.echo)
+                                        this.out(this.input)
+                                    k0 = ''
                                     break
                             }
                         }

@@ -35,16 +35,16 @@ io_1.io.form = {
             io_1.io.outln('\nXT: ', io_1.io.Empty, io_1.io.Draw);
             io_1.io.pause('cook', 5, () => {
                 io_1.io.outln('Press any key including function and control keys.');
-                io_1.io.outln('Ctrl-D for soft or Ctrl-Z for hard disconnect, anytime');
-                io_1.io.outln('RETURN or ESCape when done.');
+                io_1.io.outln('Ctrl-D (soft) or Ctrl-Z (hard) disconnect, anytime');
+                io_1.io.outln('RETURN ("DEFAULT") or ESCape ("CANCEL") when done.');
             });
-        }, cancel: '\x05', prompt: '\x1B[6n', enq: true
+        }, cancel: '\x05', prompt: '\x1B[5n', enq: true
     },
     'cook': {
         cb: () => {
             io_1.io.out(`You pressed '${io_1.io.terminator == '\r' ? '[CR]' : io_1.io.terminator}' = `, io_1.io.entry.split('').map((c) => { return c.charCodeAt(0); }));
             io_1.io.focus = io_1.io.terminator == '\r' || io_1.io.terminator == '[ESC]' ? 'username' : 'cook';
-        }, cancel: ' ', echo: false, eol: false, timeout: 20
+        }, cancel: 'CANCEL', enter: 'DEFAULT', echo: false, eol: false, timeout: 20
     },
     'username': { cb: login, prompt: 'Username: ', min: 3, max: 10 },
     'password': { cb: password, echo: false, min: 4, timeout: 15 }
