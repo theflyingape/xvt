@@ -2,7 +2,7 @@
  *  XVT authored by: Robert Hurst <theflyingape@gmail.com>                   *
  *      an asynchronous terminal session handler                             *
  *                                                                           *
- * - emulation interface: dumb, VT100, ANSI-PC, ANSI-UTF emulation           *
+ * - emulator interface: dumb, VT100, ANSI-PC, ANSI-UTF for console & xterm  *
  * - user input interface: formatted and roll-and-scroll                     *
 \*****************************************************************************/
 
@@ -31,7 +31,7 @@ interface iField {
     [key: string]: Field
 }
 
-type emulator = 'dumb' | 'VT' | 'PC' | 'XT'
+type emulator = 'dumb' | 'VT' | 'PC' | 'PI' | 'XT'
 
 export class xvt {
 
@@ -95,7 +95,7 @@ export class xvt {
         if (form) this.form = form
     }
 
-    //  ANSI using VT (DEC), PC (IBM), or XT (UTF-8) encoding, else dumb ASCII
+    //  ANSI using VT (DEC), PC (IBM), PI or XT (console) with UTF-8 encoding, else dumb ASCII
     private _emulation: emulator
     private _encoding: BufferEncoding
 
@@ -104,7 +104,7 @@ export class xvt {
     }
 
     set emulation(e: emulator) {
-        this._encoding = e == 'XT' ? 'utf8' : 'ascii'
+        this._encoding = (e == 'PI' || e == 'XT') ? 'utf8' : 'ascii'
         process.stdin.setEncoding(this.encoding)
         process.stdout.setEncoding(this.encoding)
         this._emulation = e
@@ -119,6 +119,7 @@ export class xvt {
         return {
             VT: '\x1B(0\x1B[2ma\x1B[ma\x1B[7m \x1B[1m \x1B[27m\x1B(B',
             PC: '\xB0\xB1\xB2\xDB',
+            PI: '\x1B[2m\u2591\x1B[m\u2591\u2592\u2588',
             XT: '\u2591\u2592\u2593\u2588',
             dumb: ' :: '
         }[this._emulation]
@@ -129,6 +130,7 @@ export class xvt {
         return {
             VT: '\x1B(0\x1B[1;7m \x1B[22m \x1B[ma\x1B[2ma\x1B[m\x1B(B',
             PC: '\xDB\xB2\xB1\xB0',
+            PI: '\u2588\u2592\u2591\x1B[2m\u2591\x1B[m',
             XT: '\u2588\u2593\u2592\u2591',
             dumb: ' :: '
         }[this._emulation]
@@ -139,6 +141,7 @@ export class xvt {
         return {
             VT: ['q', 'm', 'v', 'j', 't', 'n', 'u', 'l', 'w', 'k', 'x'],
             PC: ['\xC4', '\xC0', '\xC1', '\xD9', '\xC3', '\xC5', '\xB4', '\xDA', '\xC2', '\xBF', '\xB3'],
+            PI: ['\u2500', '\u2514', '\u2534', '\u2518', '\u251C', '\u253C', '\u2524', '\u250C', '\u252C', '\u2510', '\u2502'],
             XT: ['\u2500', '\u2514', '\u2534', '\u2518', '\u251C', '\u253C', '\u2524', '\u250C', '\u252C', '\u2510', '\u2502'],
             dumb: ['-', '+', '^', '+', '>', '+', '<', '+', 'v', '+', '|']
         }[this._emulation]
@@ -149,6 +152,7 @@ export class xvt {
         return {
             VT: '\x1B(0\x7E\x1B(B',
             PC: '\xFA',
+            PI: '\u00B7',
             XT: '\u00B7',
             dumb: '.'
         }[this._emulation]
@@ -709,7 +713,7 @@ export class xvt {
                     let k = this.typeahead + (key ? key.toString() : '')
                     this.typeahead = ''
                     key = null
-                    let k0 = k.substr(0, 1)
+                    let k0 = k.substring(0, 1)
                     this.terminator = null
 
                     if (this.abort || this.enq) {
@@ -717,7 +721,7 @@ export class xvt {
                         if (this.enq) {
                             let i = k.indexOf('\x1B')
                             if (i >= 0)
-                                this.entry = k.substr(i)
+                                this.entry = k.substring(i)
                             else
                                 this.entry = k
                             this.terminator = k0
@@ -732,18 +736,18 @@ export class xvt {
                     if (k.length > 1 && k0 >= ' ') {
                         const t = (this.entryMax || k.length) - this.input.length
                         if (t > 1) {
-                            let load = k.substr(0, t - 1)
+                            let load = k.substring(0, t - 1)
                             const m = /[\x00-\x1F]/.exec(load)
                             if (m && m.index)
-                                load = load.substr(0, m.index)
+                                load = load.substring(0, m.index)
                             if (this.echo)
                                 this.out(load)
                             this.input += load
-                            k = k.substr(load.length)
-                            k0 = k.substr(0, 1)
+                            k = k.substring(load.length)
+                            k0 = k.substring(0, 1)
                         }
                     }
-                    this.typeahead = k.substr(1)
+                    this.typeahead = k.substring(1)
                     if (!k0)
                         continue
 
@@ -763,7 +767,7 @@ export class xvt {
                     //  rubout / delete
                     if (k0 == '\b' || k0 == '\x7F') {
                         if (this.eol && this.input.length > 0) {
-                            this.input = this.input.substr(0, this.input.length - 1)
+                            this.input = this.input.substring(0, this.input.length - 1)
                             this.rubout()
                         }
                         else if (this.lines && this.line > 0 && !this.input.length) {
@@ -792,7 +796,7 @@ export class xvt {
                         this.terminator = `^${String.fromCharCode(k0.charCodeAt(0) + 64)}`
                         if (k0 == '\x1B') {
                             cook = 3
-                            switch (k.substr(1)) {
+                            switch (k.substring(1)) {
                                 case '[A':
                                     this.terminator = '[UP]'
                                     break
@@ -907,7 +911,7 @@ export class xvt {
                         if (k0 == '\r')
                             this.terminator = k0
 
-                        this.typeahead = k.substr(cook)
+                        this.typeahead = k.substring(cook)
 
                         if (!this.input.length && this.enter.length > 0) {
                             this.input = this.enter

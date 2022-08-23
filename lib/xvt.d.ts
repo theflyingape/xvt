@@ -22,7 +22,7 @@ interface Field {
 interface iField {
     [key: string]: Field;
 }
-declare type emulator = 'dumb' | 'VT' | 'PC' | 'XT';
+declare type emulator = 'dumb' | 'VT' | 'PC' | 'PI' | 'XT';
 export declare class xvt {
     readonly reset = 0;
     readonly bright = 1;

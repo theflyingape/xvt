@@ -19,12 +19,12 @@ io.outln(io.black, io.bright, process.title, io.reset
 	, ' running on ', io.green, 'Node.js ', io.normal, process.version
 	, io.cyan, io.faint, ' (', io.normal, process.platform, io.faint, ')')
 io.outln(io.red, npm.name, ` v${npm.version}`, io.reset, ` - ${npm.description}`)
-io.outln(`(C) 2017-2021 ${npm.author}`)
+io.outln(`(C) 2017-2022 ${npm.author}`)
 io.outln(`${npm.license} licensed`)
 io.outln()
 io.outln('Testing xvt outputs:')
 io.outln()
-io.outln(io.magenta, io.LGradient, io.reverse, ' BANNER', io.noreverse, io.RGradient)
+io.outln(io.magenta, io.LGradient, io.reverse, 'BANNER', io.noreverse, io.RGradient)
 io.out(io.red, 'R', -200, io.green, 'G', -200, io.blue, 'B', -200, io.reset, ' - ')
 io.outln(io.bright, 'bold ', -200, io.normal, 'normal ', -200, io.blink, 'flash ', io.noblink, -200, io.faint, 'dim', -200)
 
@@ -38,6 +38,9 @@ io.form = {
 
 			io.emulation = 'VT'
 			io.outln('\nVT: ', io.Empty, '\x1B(0', io.Draw, '\x1B(B')
+
+			io.emulation = 'PI'
+			io.outln('\nPI: ', io.Empty, io.Draw)
 
 			io.emulation = 'XT'
 			io.outln('\nXT: ', io.Empty, io.Draw)

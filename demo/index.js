@@ -15,12 +15,12 @@ const npm = require('../package.json');
 io_1.io.outln();
 io_1.io.outln(io_1.io.black, io_1.io.bright, process.title, io_1.io.reset, ' running on ', io_1.io.green, 'Node.js ', io_1.io.normal, process.version, io_1.io.cyan, io_1.io.faint, ' (', io_1.io.normal, process.platform, io_1.io.faint, ')');
 io_1.io.outln(io_1.io.red, npm.name, ` v${npm.version}`, io_1.io.reset, ` - ${npm.description}`);
-io_1.io.outln(`(C) 2017-2021 ${npm.author}`);
+io_1.io.outln(`(C) 2017-2022 ${npm.author}`);
 io_1.io.outln(`${npm.license} licensed`);
 io_1.io.outln();
 io_1.io.outln('Testing xvt outputs:');
 io_1.io.outln();
-io_1.io.outln(io_1.io.magenta, io_1.io.LGradient, io_1.io.reverse, ' BANNER', io_1.io.noreverse, io_1.io.RGradient);
+io_1.io.outln(io_1.io.magenta, io_1.io.LGradient, io_1.io.reverse, 'BANNER', io_1.io.noreverse, io_1.io.RGradient);
 io_1.io.out(io_1.io.red, 'R', -200, io_1.io.green, 'G', -200, io_1.io.blue, 'B', -200, io_1.io.reset, ' - ');
 io_1.io.outln(io_1.io.bright, 'bold ', -200, io_1.io.normal, 'normal ', -200, io_1.io.blink, 'flash ', io_1.io.noblink, -200, io_1.io.faint, 'dim', -200);
 io_1.io.form = {
@@ -31,6 +31,8 @@ io_1.io.form = {
             io_1.io.outln('\nPC: ', io_1.io.Empty, io_1.io.Draw);
             io_1.io.emulation = 'VT';
             io_1.io.outln('\nVT: ', io_1.io.Empty, '\x1B(0', io_1.io.Draw, '\x1B(B');
+            io_1.io.emulation = 'PI';
+            io_1.io.outln('\nPI: ', io_1.io.Empty, io_1.io.Draw);
             io_1.io.emulation = 'XT';
             io_1.io.outln('\nXT: ', io_1.io.Empty, io_1.io.Draw);
             io_1.io.pause('cook', 5, () => {

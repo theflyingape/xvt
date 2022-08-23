@@ -1,20 +1,21 @@
 # xvt
 
-*an asynchronous terminal session handler*
+## *an asynchronous terminal session handler*
 
-xvt class an be initialized for either input & output or for output only
+`xvt` class an be initialized for either input & output or for output only
 
-xvt input designed to work akin to a browser `<form>` element
+`xvt` input designed to work akin to a browser `<form>` element
 
-xvt output supports your app's terminal emulator needs:
+`xvt` output filters to your app's terminal emulation needs:
 
 * `dumb` - plain ASCII
-* `VT` - VT220 monochrome 7-bit controls
+* `VT` - VT220 monochrome 7-bit controls with plain ASCII
 * `PC` - ANSI color typically used with IBM CP850 encoding
-* `XT` - ANSI color used with UTF-8 encoding
+* `PI` - Linux virtual console controls - useful on Raspberry Pi console
+* `XT` - ANSI color used with UTF-8 encoding - useful for xterm & web apps
 
 ```javascript
-const emulation = [ 'dumb', 'VT', 'PC', 'XT' ]
+const emulation = [ 'dumb', 'VT', 'PC', 'PI', 'XT' ]
 for (let e in emulation) {
     xvt.app.emulation = emulation[e]
     xvt.outln(xvt.magenta, xvt.app.LGradient, xvt.reverse, emulation[e], ' BANNER', xvt.noreverse, xvt.app.RGradient)
@@ -33,6 +34,22 @@ Or install it locally and run its demo from a shell:
 $ npm install xvt
 $ cd node_modules/xvt
 $ npm run demo
+
+> @theflyingape/xvt@1.5.0 demo
+> tsc -p demo --outDir demo; node demo/index
+
+xvt I/O initialized
+
+demo running on Node.js v16.16.0 (linux)
+@theflyingape/xvt v1.5.0 - an asynchronous terminal session handler
+(C) 2017-2022 Robert Hurst <theflyingape@gmail.com>
+MIT licensed
+
+Testing xvt outputs:
+
+░▒▓█BANNER█▓▒░
+RGB - bold normal flash dim
+Request terminal device status ENQ response = 27,91,48,110
 ```
 
 ## Example snippet
