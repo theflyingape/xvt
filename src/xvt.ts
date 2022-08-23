@@ -101,7 +101,7 @@ export class xvt {
     private _encoding: BufferEncoding
 
     get os() {
-        return require('node:os')
+        return require(+process.versions.node.split('.')[0] < 16 ? 'os' : 'node:os')
     }
 
     get emulation(): emulator {
