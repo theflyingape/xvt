@@ -1,6 +1,6 @@
 {
   "name": "@theflyingape/xvt",
-  "version": "1.5.0",
+  "version": "1.5.1",
   "description": "an asynchronous terminal session handler",
   "author": "Robert Hurst <theflyingape@gmail.com>",
   "homepage": "https://robert.hurst-ri.us",
@@ -23,7 +23,7 @@
   "main": "lib/xvt.js",
   "types": "lib/xvt.d.ts",
   "devDependencies": {
-    "@types/node": "^15.14.9",
+    "@types/node": "^18.7.11",
     "typescript": "^4.7.4"
   },
   "bugs": {

@@ -124,7 +124,7 @@ export class xvt {
         return {
             VT: '\x1B(0\x1B[2ma\x1B[ma\x1B[7m \x1B[1m \x1B[27m\x1B(B',
             PC: '\xB0\xB1\xB2\xDB',
-            PI: '\x1B[2m\u2591\x1B[m\u2591\u2592\u2588',
+            PI: ' \u2591\u2592\u2588',
             XT: '\u2591\u2592\u2593\u2588',
             dumb: ' :: '
         }[this._emulation]
@@ -135,7 +135,7 @@ export class xvt {
         return {
             VT: '\x1B(0\x1B[1;7m \x1B[22m \x1B[ma\x1B[2ma\x1B[m\x1B(B',
             PC: '\xDB\xB2\xB1\xB0',
-            PI: '\u2588\u2592\u2591\x1B[2m\u2591\x1B[m',
+            PI: '\u2588\u2592\u2591 ',
             XT: '\u2588\u2593\u2592\u2591',
             dumb: ' :: '
         }[this._emulation]
