@@ -28,13 +28,13 @@ io_1.io.form = {
         cb: () => {
             io_1.io.outln('ENQ response = ', io_1.io.entry.split('').map((c) => { return c.charCodeAt(0); }));
             io_1.io.emulation = 'PC';
-            io_1.io.outln('\nPC: ', io_1.io.Empty, io_1.io.Draw);
+            io_1.io.outln(`\nPC: ${io_1.io.Empty} `, io_1.io.Draw);
             io_1.io.emulation = 'VT';
-            io_1.io.outln('\nVT: ', io_1.io.Empty, '\x1B(0', io_1.io.Draw, '\x1B(B');
+            io_1.io.outln(`\nVT: ${io_1.io.Empty} `, io_1.io.Draw);
             io_1.io.emulation = 'PI';
-            io_1.io.outln('\nPI: ', io_1.io.Empty, io_1.io.Draw);
+            io_1.io.outln(`\nPI: ${io_1.io.Empty} `, io_1.io.Draw);
             io_1.io.emulation = 'XT';
-            io_1.io.outln('\nXT: ', io_1.io.Empty, io_1.io.Draw);
+            io_1.io.outln(`\nXT: ${io_1.io.Empty} `, io_1.io.Draw);
             io_1.io.pause('cook', 5, () => {
                 io_1.io.outln('Press any key including function and control keys.');
                 io_1.io.outln('Ctrl-D (soft) or Ctrl-Z (hard) disconnect, anytime');

@@ -34,16 +34,16 @@ io.form = {
 			io.outln('ENQ response = ', io.entry.split('').map((c) => { return c.charCodeAt(0) }))
 
 			io.emulation = 'PC'
-			io.outln('\nPC: ', io.Empty, io.Draw)
+			io.outln(`\nPC: ${io.Empty} `, io.Draw)
 
 			io.emulation = 'VT'
-			io.outln('\nVT: ', io.Empty, '\x1B(0', io.Draw, '\x1B(B')
+			io.outln(`\nVT: ${io.Empty} `, io.Draw)
 
 			io.emulation = 'PI'
-			io.outln('\nPI: ', io.Empty, io.Draw)
+			io.outln(`\nPI: ${io.Empty} `, io.Draw)
 
 			io.emulation = 'XT'
-			io.outln('\nXT: ', io.Empty, io.Draw)
+			io.outln(`\nXT: ${io.Empty} `, io.Draw)
 
 			io.pause('cook', 5, () => {
 				io.outln('Press any key including function and control keys.')

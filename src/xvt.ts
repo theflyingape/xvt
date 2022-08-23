@@ -614,8 +614,8 @@ export class xvt {
                 await this.read()
             } while (this.line < this.lines)
             this.entry = this.multi.join('\n')
-            while (this.entry.substr(-1) == '\n')
-                this.entry = this.entry.substr(0, this.entry.length - 1)
+            while (this.entry.slice(-1) == '\n')
+                this.entry = this.entry.slice(0, -1)
         }
 
         p.cb()
@@ -719,11 +719,7 @@ export class xvt {
                     if (this.abort || this.enq) {
                         // keep special ENQUIRY result
                         if (this.enq) {
-                            let i = k.indexOf('\x1B')
-                            if (i >= 0)
-                                this.entry = k.substring(i)
-                            else
-                                this.entry = k
+                            this.entry = k.substring(k.indexOf('\x1B'))
                             this.terminator = k0
                             this.enq = false
                         }
