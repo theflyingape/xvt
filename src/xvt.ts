@@ -87,9 +87,10 @@ export class xvt {
     readonly cll = 254
     readonly clear = 255
 
-    constructor(e: emulator = 'XT', init = true, log = true, form: iField = null) {
+    constructor(e?: emulator, init = true, log = true, form: iField = null) {
+
         this.carrier = true
-        this.emulation = e
+        this.emulation = e || this.os.arch == 'arm64' ? 'PI' : this.os.type == 'linux' ? 'XT' : 'VT'
         this.sessionStart = new Date()
         if (init) this.stdio(log)
         if (form) this.form = form
@@ -98,6 +99,10 @@ export class xvt {
     //  ANSI using VT (DEC), PC (IBM), PI or XT (console) with UTF-8 encoding, else dumb ASCII
     private _emulation: emulator
     private _encoding: BufferEncoding
+
+    get os() {
+        return require('node:os')
+    }
 
     get emulation(): emulator {
         return this._emulation

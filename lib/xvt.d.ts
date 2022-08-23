@@ -73,6 +73,7 @@ export declare class xvt {
     constructor(e?: emulator, init?: boolean, log?: boolean, form?: iField);
     private _emulation;
     private _encoding;
+    get os(): any;
     get emulation(): emulator;
     set emulation(e: emulator);
     get encoding(): BufferEncoding;
